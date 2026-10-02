@@ -1,6 +1,8 @@
 services:
   db:
     image: postgres:17-alpine
+    security_opt:
+      - no-new-privileges:true
     environment:
       POSTGRES_USER: liveyourlife
       POSTGRES_PASSWORD: liveyourlife
@@ -18,6 +20,8 @@ services:
 
   backend:
     image: lyl-backend:latest
+    security_opt:
+      - no-new-privileges:true
     build:
       context: ./backend
       dockerfile: LYL.Api/Dockerfile
@@ -34,6 +38,8 @@ services:
 
   frontend:
     image: lyl-frontend:latest
+    security_opt:
+      - no-new-privileges:true
     build:
       context: ./frontend
       args:
