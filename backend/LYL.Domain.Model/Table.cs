@@ -47,7 +47,7 @@ public class Table
 
         for (int i = 0; i < players.Count; i++)
         {
-            players[i].AssignCharacter(shuffledCharacters[i], partners);
+            players[i].AssignCharacter(shuffledCharacters[i], partners, random);
         }
     }
     }

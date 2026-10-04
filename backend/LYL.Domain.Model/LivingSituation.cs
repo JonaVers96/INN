@@ -13,8 +13,8 @@ public class LivingSituation
 
     public LivingSituation(List<Partner> partners, IRandomIntProvider random)
     {
-        AllPartners = partners;
         _random = random;
+        AllPartners = partners;
         AssignChildren();
         AssignPartner();
     }

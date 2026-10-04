@@ -14,14 +14,13 @@ public class Player
     public Character Character { get; set; }
     public Dossier Dossier {get; set;}
 
-    private readonly IRandomIntProvider _random;
 
 
 
     public DossierState DossierState {get; set;}
     public InvestmentProfile InvestmentProfile { get; set; } = InvestmentProfile.Neutral;
 
-    public void AssignCharacter(Character character, List<Partner> partners)
+    public void AssignCharacter(Character character, List<Partner> partners, IRandomIntProvider _random)
     {
         Character = character;
         Character.LivingSituation = new LivingSituation(partners, _random);
