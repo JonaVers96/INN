@@ -13,13 +13,18 @@ public class Player
     public string CurrentPhase { get; set; } = "waiting"; // Standaard beginwaarde
     public Character Character { get; set; }
     public Dossier Dossier {get; set;}
+
+    private readonly IRandomIntProvider _random;
+
+
+
     public DossierState DossierState {get; set;}
     public InvestmentProfile InvestmentProfile { get; set; } = InvestmentProfile.Neutral;
 
     public void AssignCharacter(Character character, List<Partner> partners)
     {
         Character = character;
-        Character.LivingSituation = new LivingSituation(partners);
+        Character.LivingSituation = new LivingSituation(partners, _random);
         Dossier = new(Character, Character.LivingSituation);
     }
 
