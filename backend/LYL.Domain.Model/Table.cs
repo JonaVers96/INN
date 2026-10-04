@@ -1,5 +1,8 @@
 using System;
+using System.Security.Cryptography;
+using LYL.Domain.Model.Interfaces;
 
+    
 namespace LYL.Domain.Model;
 
 public class Table
@@ -11,6 +14,7 @@ public class Table
     // Lockobject is for tryaddplayer method
     private readonly object lockObject = new object();
     private readonly List<Player> players = new();
+    
     public IReadOnlyList<Player> Players => players.AsReadOnly();
     public bool IsFull => players.Count >= 5;
     public List<Character> Characters { get; set; } = new();
@@ -35,17 +39,20 @@ public class Table
         }
     }
 
-    public void AssignCharactersToPlayers(List<Partner> partners)
+    public void AssignCharactersToPlayers(List<Partner> partners, IRandomIntProvider random)
     {
-        lock (lockObject)
-        {
-            var random = new Random();
-            var shuffledCharacters = Characters.OrderBy(x => random.Next()).ToList();
+    lock (lockObject)
+    {
+        var shuffledCharacters = random.Shuffle(Characters);
 
-            for (int i = 0; i < players.Count; i++)
-            {
-                players[i].AssignCharacter(shuffledCharacters[i], partners);
-            }
+        for (int i = 0; i < players.Count; i++)
+        {
+            players[i].AssignCharacter(shuffledCharacters[i], partners);
         }
     }
+    }
+
+     
+
+   
 }
