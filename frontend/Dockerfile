@@ -8,7 +8,7 @@ ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
 RUN npx vite build
 
 FROM nginxinc/nginx-unprivileged:alpine AS runtime
-USER root
+USER root 
 RUN apk upgrade --no-cache
 COPY --from=build /app/dist /usr/share/nginx/html
 COPY nginx.conf /etc/nginx/conf.d/default.conf
