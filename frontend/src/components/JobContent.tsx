@@ -10,7 +10,18 @@ const JobPage = () => {
   const { t } = useTranslation();
 
   // Importing possible jobs
-  const jobs = [mockJobData[0].job1, mockJobData[0].job2, mockJobData[0].job3];
+  const jobs: Job[] = [mockJobData[0].job1, mockJobData[0].job2, mockJobData[0].job3].map(
+    (job, index) => ({
+      id: `${index + 1}`,
+      nameKey: job.nameKey,
+      firstSalaryGrossKey: 0,
+      firstSalaryNetKey: 0,
+      secondSalaryGrossKey: 0,
+      secondSalaryNetKey: 0,
+      benefitsKey: job.nameKey,
+      pensionKey: 0,
+    }),
+  );
 
   // Names segments
   const data = jobs.map((job) => ({

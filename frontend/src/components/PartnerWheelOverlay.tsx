@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { Wheel } from "react-custom-roulette";
+import { useState } from "react";
+import { Wheel } from "react-custom-roulette-r19";
 import { useTranslation } from "react-i18next";
 import type { Partner } from "../types/CharacterModel";
 import Confetti from "react-confetti";
