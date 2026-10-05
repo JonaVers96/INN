@@ -1,0 +1,28 @@
+{
+  "housing": {
+    "buy": {
+      "options": []
+    },
+    "rent": {
+      "options": [],
+      "social_housing_conditions": {}
+    }
+  },
+  "living_costs": {
+    "options": []
+  },
+  "mobility": {
+    "transport": {
+      "options": []
+    },
+    "auto_insurance": {
+      "options": []
+    }
+  },
+  "general_insurance": {
+    "options": []
+  },
+  "savings": {
+    "options": []
+  }
+}

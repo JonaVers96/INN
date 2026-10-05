@@ -9,7 +9,7 @@ public class TestInMemoryDataRepository
     {
         _repo = new InMemoryDataRepository();
         
-        var jsonText = File.ReadAllText(@""); //TODO: Indien test, haal gegevens op!!!! 
+        var jsonText = File.ReadAllText(@"Tests/LYL.Persistence.Tests/dossierdata.json"); //TODO: Indien test, haal gegevens op!!!! 
         using var document = JsonDocument.Parse(jsonText);
         var jsonData = new Dictionary<string, JsonDocument>
         {

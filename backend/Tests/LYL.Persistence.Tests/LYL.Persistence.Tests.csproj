@@ -19,6 +19,11 @@
   </ItemGroup>
 
   <ItemGroup>
+  <None Update="dossierdata.json"
+        CopyToOutputDirectory="PreserveNewest" />
+</ItemGroup>
+
+  <ItemGroup>
     <Using Include="Xunit" />
   </ItemGroup>
 
