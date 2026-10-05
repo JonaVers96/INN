@@ -37,3 +37,8 @@ Sigrid uses your **GitHub repository name** as the system name, under customer `
 After the token is in place, the first push to `main` onboards your system automatically. Pull requests receive Sigrid feedback as a comment.
 
 Setup details are in the [Sigrid GitHub Actions documentation](https://docs.sigrid-says.com/sigridci-integration/github-actions.html).
+
+
+## ENV VARIABLES
+
+1. In the root folder make a .env file and add POSTGRES_PASSWORD for your docker compose
