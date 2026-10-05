@@ -248,7 +248,7 @@ public class TestInMemoryDataRepository
     {
         var result = _repo.GetHouseInfoRent("rent_apt_city");
 
-        Assert.Equal(3, result.maxSpace);
+        Assert.Equal(5, result.maxSpace);
         Assert.False(result.needsCar);
     }
 
