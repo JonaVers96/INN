@@ -1,6 +1,7 @@
 services:
   db:
     image: postgres:17-alpine
+    user: postgres
     security_opt:
       - no-new-privileges:true
     environment:
@@ -19,12 +20,6 @@ services:
       retries: 5
     cap_drop:
       - ALL
-    cap_add:
-      - CHOWN
-      - DAC_OVERRIDE
-      - FOWNER
-      - SETGID
-      - SETUID
 
   backend:
     image: lyl-backend:latest
