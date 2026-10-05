@@ -29,7 +29,7 @@ services:
       - "5187:8080"
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
-      - ConnectionStrings__DefaultConnection=Host=db;Port=5432;Database=liveyourlife;Username=liveyourlife;Password=liveyourlife
+      - ConnectionStrings__DefaultConnection=Host=db;Port=5432;Database=liveyourlife;Username=liveyourlife;Password=${POSTGRES_PASSWORD}
       - Cors__AllowedOrigins=http://cigritdev.fortiddns.com:21001,http://localhost:8888
       - Supervisor__Pin=${SUPERVISOR_PIN:-0420}
     depends_on:
