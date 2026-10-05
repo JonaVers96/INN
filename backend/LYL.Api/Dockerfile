@@ -23,4 +23,5 @@ WORKDIR /app
 COPY --from=build /app/publish .
 EXPOSE 8080
 ENV ASPNETCORE_HTTP_PORTS=8080
+USER app
 ENTRYPOINT ["dotnet", "LYL.Api.dll"]
