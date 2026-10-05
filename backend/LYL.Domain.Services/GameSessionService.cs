@@ -22,14 +22,17 @@ public class GameSessionService : IGameSessionService
     private readonly IMemoryAccessService memoryAccessService;
     private readonly IInvestmentCalculator investmentCalculator;
 
+     private readonly IRandomIntProvider _randomIntProvider;
+
     public GameSessionService(IGameRoomRepository roomRepo, ISupervisorRepository supervisorRepo,
-        IJsonSerializerService jsonSerializer, IMemoryAccessService memoryService, IInvestmentCalculator investmentCalculator)
+        IJsonSerializerService jsonSerializer, IMemoryAccessService memoryService, IInvestmentCalculator investmentCalculator, IRandomIntProvider random)
     {
         this.roomRepo = roomRepo;
         this.supervisorRepo = supervisorRepo;
         this.jsonSerializer = jsonSerializer;
         this.memoryAccessService = memoryService;
         this.investmentCalculator =  investmentCalculator;
+        this._randomIntProvider = random;  
     }
 
     public async Task<CreateRoomResponse> CreateRoomAsync(CreateRoomRequest request)
@@ -141,7 +144,7 @@ public class GameSessionService : IGameSessionService
             foreach (var table in room.Tables)
             {
                 table.Characters = characters;
-                table.AssignCharactersToPlayers(partners);
+                table.AssignCharactersToPlayers(partners, _randomIntProvider);
                 foreach (var player in table.Players)
                 {
                     player.CurrentPhase = "character-discovery";
@@ -292,7 +295,7 @@ public class GameSessionService : IGameSessionService
 
         if (player.Character.ChosenJob == null)
         {
-            player.Character.AssignRandomJob();
+            player.Character.AssignRandomJob(_randomIntProvider);
 
             await roomRepo.UpdateAsync(room);
         }

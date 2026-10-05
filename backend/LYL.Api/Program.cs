@@ -45,6 +45,7 @@ builder.Services.AddSingleton<IJsonReaderRepository>(_ => new JsonReaderReposito
 builder.Services.AddSingleton<IJsonSerializerService, JsonSerializerService>();
 builder.Services.AddSingleton<IInMemoryDataRepository, InMemoryDataRepository>();
 builder.Services.AddSingleton<IMemoryAccessService, InMemoryAccessService>();
+builder.Services.AddSingleton<IRandomIntProvider, SecureRandomIntService>();
 
 //twee interfaces in 1 klasse
 builder.Services.AddSingleton<InvestmentReturnsService>();
