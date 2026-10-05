@@ -1,0 +1,16 @@
+[
+  {
+    "job1": {
+      "nameKey": "jobs.job1",
+      "title": "Job 1"
+    },
+    "job2": {
+      "nameKey": "jobs.job2",
+      "title": "Job 2"
+    },
+    "job3": {
+      "nameKey": "jobs.job3",
+      "title": "Job 3"
+    }
+  }
+]

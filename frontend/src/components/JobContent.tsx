@@ -1,5 +1,5 @@
-import { Wheel } from "react-custom-roulette";
-import React, { useState } from "react";
+import { Wheel } from "react-custom-roulette-r19";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import mockJobData from "../assets/mockJobData.json";
 import ResultPane from "./ResultPane";
