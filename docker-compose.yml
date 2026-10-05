@@ -5,7 +5,7 @@ services:
       - no-new-privileges:true
     environment:
       POSTGRES_USER: liveyourlife
-      POSTGRES_PASSWORD: liveyourlife
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: liveyourlife
     ports:
       - "9999:5432"
