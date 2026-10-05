@@ -17,6 +17,14 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - DAC_OVERRIDE
+      - FOWNER
+      - SETGID
+      - SETUID
 
   backend:
     image: lyl-backend:latest
@@ -35,6 +43,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    cap_drop:
+      - ALL
 
   frontend:
     image: lyl-frontend:latest
@@ -48,6 +58,8 @@ services:
       - "8888:8080"
     depends_on:
       - backend
+    cap_drop:
+      - ALL
 
 volumes:
   postgres_data:
