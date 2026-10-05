@@ -43,7 +43,7 @@ services:
     depends_on:
       db:
         condition: service_healthy
-    cap_drop:
+    cap_drop: 
       - ALL
 
   frontend:
