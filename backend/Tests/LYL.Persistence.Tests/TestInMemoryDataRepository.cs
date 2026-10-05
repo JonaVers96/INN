@@ -6,18 +6,23 @@ public class TestInMemoryDataRepository
     private readonly InMemoryDataRepository _repo;
 
     public TestInMemoryDataRepository()
-    {
-        _repo = new InMemoryDataRepository();
-        
-        var jsonText = File.ReadAllText(@"Tests/LYL.Persistence.Tests/dossierdata.json"); //TODO: Indien test, haal gegevens op!!!! 
-        using var document = JsonDocument.Parse(jsonText);
-        var jsonData = new Dictionary<string, JsonDocument>
-        {
-            { "dossierdata.json", document }
-        };
-        _repo.FillInMemoryData(jsonData);
+{
+    _repo = new InMemoryDataRepository();
 
-    }
+    var dataFile = Path.Combine(
+        AppContext.BaseDirectory,
+        "dossierdata.json");
+
+    var jsonText = File.ReadAllText(dataFile);
+
+    using var document = JsonDocument.Parse(jsonText);
+    var jsonData = new Dictionary<string, JsonDocument>
+    {
+        { "dossierdata.json", document }
+    };
+
+    _repo.FillInMemoryData(jsonData);
+}
 
     [Fact]
     public void GivenExistingRentCost_WhenGettingHouseId_ThenReturnsCorrectHouseId()
