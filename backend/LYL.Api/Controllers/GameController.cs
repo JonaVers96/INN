@@ -85,7 +85,15 @@ public class GameController(IGameSessionService gameSessionService, IHubContext<
         if (!Guid.TryParse(playerId, out var playerGuid))
             return BadRequest(new { message = "Ongeldig speler ID." });
 
-        var updatedPhase = await gameSessionService.CompleteFirstWorkPhaseAsync(roomId, playerGuid);
+        string updatedPhase;
+        try
+        {
+            updatedPhase = await gameSessionService.CompleteFirstWorkPhaseAsync(roomId, playerGuid);
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
 
         await hubContext.Clients.Group(roomId).SendAsync("PlayerPhaseUpdated", new
         {

@@ -43,6 +43,7 @@ const HomePlayerPage = () => {
           roomCode: activeSession?.room || "",
           tableNumber: parseInt(localStorage.getItem("tableNumber") || "1", 10),
           nickName: localStorage.getItem("nickName") || "",
+          playerId: activeSession?.id,
         }
       : {
           roomCode: roomCode || "",

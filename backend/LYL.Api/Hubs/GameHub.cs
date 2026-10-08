@@ -69,23 +69,4 @@ public class GameHub(IGameSessionService sessionService) : Hub
 
         await Clients.Group(roomCode).SendAsync("PlayerReconnected", new { PlayerId = playerId });
     }
-
-    public async Task UpdatePlayerPhase(string roomCode, string playerId, string newPhase)
-    {
-        try
-        {
-            if (!Guid.TryParse(playerId, out var playerGuid)) return;
-            await sessionService.UpdatePlayerPhaseAsync(roomCode, playerGuid, newPhase);
-
-            await Clients.Group(roomCode).SendAsync("PlayerPhaseUpdated", new
-            {
-                PlayerId = playerId,
-                NewPhase = newPhase
-            });
-        }
-        catch (Exception e)
-        {
-            throw new HubException($"Couldn't update phase: {e.Message}");
-        }
-    }
 }

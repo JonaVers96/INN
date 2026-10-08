@@ -14,7 +14,6 @@ public interface IGameSessionService
     Task<JoinTableResponse> JoinTableAsync(JoinTableRequest request);
     Task<LeaveTableResponse> LeaveTableAsync(LeaveTableRequest request);
     Task SetRoomActiveAsync(string roomCode, bool isActive);
-    Task UpdatePlayerPhaseAsync(string roomCode, Guid playerId, string newPhase);
 
     Task<RoomStateResponse?> GetRoomStateAsync(string roomCode);
 

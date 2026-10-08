@@ -174,7 +174,8 @@ public class InMemoryDataRepository : IInMemoryDataRepository
     {
         if (Characters.Count <= 0) 
             throw new Exception("Characters not found. Are they filled in correctly by reading the database?");
-        return Characters;
+        // Deep copy so every caller gets its own instances (players must not share Character state)
+        return JsonSerializer.Deserialize<List<Character>>(JsonSerializer.Serialize(Characters))!;
     }
 
     public List<Partner> GetPartners()

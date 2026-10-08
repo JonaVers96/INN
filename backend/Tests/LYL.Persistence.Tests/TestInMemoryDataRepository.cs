@@ -260,7 +260,7 @@ public class TestInMemoryDataRepository
     [Fact]
     public void GivenCorrectTransportPurchaseCost_WhenGettingCarInfo_ThenReturnsCorrectInfo()
     {
-        var result = _repo.GetCarInfo(210);
+        var result = _repo.GetCarInfo(210, 1);
 
         Assert.Equal(175, result.monthlyCost);
         Assert.False(result.isSport);
@@ -272,7 +272,7 @@ public class TestInMemoryDataRepository
     [InlineData(0)]
     public void GivenWrongTransportPurchaseCost_WhenGettingCarInfo_ThenReturnsDefault(decimal cost)
     {
-        var result = _repo.GetCarInfo(cost);
+        var result = _repo.GetCarInfo(cost, 1);
 
         Assert.Equal(default, result);
     }

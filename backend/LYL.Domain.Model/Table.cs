@@ -43,6 +43,9 @@ public class Table
     {
     lock (lockObject)
     {
+        if (Characters.Count < players.Count)
+            throw new InvalidOperationException($"Not enough characters for table {TableNumber}.");
+
         var shuffledCharacters = random.Shuffle(Characters);
 
         for (int i = 0; i < players.Count; i++)
@@ -52,7 +55,20 @@ public class Table
     }
     }
 
-     
+    // For players joining after the game started: pick a character no one at this table has yet
+    public bool TryAssignCharacterToPlayer(Player player, List<Partner> partners, IRandomIntProvider random)
+    {
+        lock (lockObject)
+        {
+            var freeCharacters = Characters.Where(c => players.All(p => p.Character != c)).ToList();
+            if (freeCharacters.Count == 0) return false;
+
+            player.AssignCharacter(freeCharacters[random.NextInt(0, freeCharacters.Count)], partners, random);
+            return true;
+        }
+    }
+
+
 
    
 }

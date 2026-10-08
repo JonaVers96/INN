@@ -44,13 +44,16 @@ public class GameSessionService : IGameSessionService
             throw new ArgumentException("Docent niet gevonden.");
         }
 
-        var room = new GameRoom(supervisor, GenerateRoomCode());
+        // Spelgegevens eerst inlezen: zonder data kan het spel later niet starten
+        if (!jsonSerializer.SerializeAllJsonFiles())
+        {
+            throw new InvalidOperationException("Spelgegevens konden niet ingelezen worden.");
+        }
+
+        var room = new GameRoom(supervisor, await GenerateUniqueRoomCodeAsync());
 
         await roomRepo.AddAsync(room);
-        
-        //if everything succeeds read json files backend 
-        jsonSerializer.SerializeAllJsonFiles();
-        
+
         return new CreateRoomResponse
         {
             RoomCode = room.RoomCode
@@ -65,7 +68,10 @@ public class GameSessionService : IGameSessionService
         var table = room.Tables.FirstOrDefault(t => t.TableNumber == request.TableNumber);
         if (table == null) throw new ArgumentException("Table does not exist.");
 
-        var existingPlayer = table.Players.FirstOrDefault(p => p.Nickname == request.NickName);
+        // Opnieuw verbinden kan enkel met de eigen PlayerId, niet louter op nickname
+        var existingPlayer = request.PlayerId is Guid playerId
+            ? table.Players.FirstOrDefault(p => p.PlayerId == playerId)
+            : null;
 
         Player activePlayer;
 
@@ -75,22 +81,34 @@ public class GameSessionService : IGameSessionService
         }
         else
         {
+            if (table.Players.Any(p => p.Nickname == request.NickName))
+            {
+                throw new InvalidOperationException("This nickname is already taken at this table.");
+            }
+
             activePlayer = new Player
             {
                 PlayerId = Guid.NewGuid(),
                 Nickname = request.NickName,
-                CurrentPhase = room.IsActive ? "student-phase" : "waiting"
+                CurrentPhase = room.IsActive ? "character-discovery" : "waiting"
             };
 
             if (!table.TryAddPlayer(activePlayer))
             {
                 throw new InvalidOperationException("This table is full.");
             }
+
+            // Laatkomer: spel is al gestart, dus meteen een vrij character toewijzen
+            if (room.IsActive && !table.TryAssignCharacterToPlayer(activePlayer, jsonSerializer.GetPartners(), _randomIntProvider))
+            {
+                table.RemovePlayer(activePlayer);
+                throw new InvalidOperationException("No characters left at this table.");
+            }
         }
 
         var response = new JoinTableResponse
         {
-            NickName = request.NickName,
+            NickName = activePlayer.Nickname,
             TableNumber = request.TableNumber,
             PlayerId = activePlayer.PlayerId,
             IsGameAlreadyStarted = room.IsActive,
@@ -123,7 +141,7 @@ public class GameSessionService : IGameSessionService
 
         var response = new LeaveTableResponse
         {
-            TableNumber = request.TableNumber,
+            TableNumber = table.TableNumber,
             PlayerId = playerToRemove.PlayerId
         };
         return response;
@@ -134,16 +152,17 @@ public class GameSessionService : IGameSessionService
         var room = await roomRepo.GetByRoomCodeAsync(roomCode);
         if (room == null) throw new ArgumentException("Room not found");
 
-        room.IsActive = isActive;
+        // Al gestart: niet opnieuw characters uitdelen (zou alle dossiers wissen)
+        if (isActive && room.IsActive) return;
 
         if (isActive)
         {
-            //TODO hier alle characters opvragen en aan table toewijzen (binnen de foreach toewijzen en buiten opvragen!!!!)
-            List<Character> characters = jsonSerializer.getCharacters();
+            // IsActive pas na het toewijzen zetten, zodat een fout hier de room niet half gestart achterlaat
             List<Partner> partners = jsonSerializer.GetPartners();
             foreach (var table in room.Tables)
             {
-                table.Characters = characters;
+                // Per tafel opvragen: getCharacters() geeft telkens nieuwe kopieën, zodat tafels geen Character-objecten delen
+                table.Characters = jsonSerializer.getCharacters();
                 table.AssignCharactersToPlayers(partners, _randomIntProvider);
                 foreach (var player in table.Players)
                 {
@@ -152,21 +171,7 @@ public class GameSessionService : IGameSessionService
             }
         }
 
-        await roomRepo.UpdateAsync(room);
-    }
-
-    public async Task UpdatePlayerPhaseAsync(string roomCode, Guid playerId, string newPhase)
-    {
-        var room = await roomRepo.GetByRoomCodeAsync(roomCode);
-        if (room == null) throw new ArgumentException("Room not found");
-
-        var player = room.Tables
-            .SelectMany(t => t.Players)
-            .FirstOrDefault(p => p.PlayerId == playerId);
-
-        if (player == null) throw new ArgumentException("Player not found");
-
-        player.CurrentPhase = newPhase;
+        room.IsActive = isActive;
         await roomRepo.UpdateAsync(room);
     }
 
@@ -209,7 +214,7 @@ public class GameSessionService : IGameSessionService
         await roomRepo.RemoveAsync(roomCode);
     }
 
-    public async Task<Dictionary<int, List<EventCard>>> GetEventCards()
+    public Task<Dictionary<int, List<EventCard>>> GetEventCards()
     {
         // Haal alle kaarten op (zorg dat de Id property in deze lijst goed gevuld is vanuit de JSON keys!)
         List<EventCard> eventCards = memoryAccessService.GetAllEventCards();
@@ -247,7 +252,7 @@ public class GameSessionService : IGameSessionService
             packagesInGroupsToReturn.Add(key, cardsForPackage);
         }
 
-        return packagesInGroupsToReturn;
+        return Task.FromResult(packagesInGroupsToReturn);
     }
 
     public async Task SaveEventCardsInput(string roomId, string playerGuid, EventCardSaveRequestContract request)
@@ -259,6 +264,7 @@ public class GameSessionService : IGameSessionService
             .SelectMany(t => t.Players)
             .FirstOrDefault(p => p.PlayerId.ToString() == playerGuid);
         if (player == null) throw new Exception("Player not found");
+        if (player.Dossier == null) throw new InvalidOperationException("Het spel is nog niet gestart.");
 
         try
         {
@@ -276,9 +282,16 @@ public class GameSessionService : IGameSessionService
     }
 
     //Helper, we can extract this into a utils folder and inject via interface
-    private string GenerateRoomCode()
+    private async Task<string> GenerateUniqueRoomCodeAsync()
     {
-        return new Random().Next(100000, 999999).ToString();
+        // Opnieuw proberen tot de code niet in gebruik is, anders weigert AddAsync de room stilletjes
+        string code;
+        do
+        {
+            code = Random.Shared.Next(100000, 1000000).ToString();
+        } while (await roomRepo.GetByRoomCodeAsync(code) != null);
+
+        return code;
     }
 
     //TODO Look at interface!!
@@ -316,12 +329,24 @@ public class GameSessionService : IGameSessionService
         if (player?.Character?.StudentPhase == null)
             throw new ArgumentException("Player or Character Data not found");
 
+        // De studentenfase mag maar één keer afgerond worden
+        if (player.CurrentPhase is not ("character-discovery" or "student-phase"))
+        {
+            throw new InvalidOperationException("De studentenfase is al afgerond.");
+        }
+
+        // Eerst alles valideren, pas daarna wegschrijven (anders blijft een half aangepaste staat achter)
         int newlyAddedPoints = 0;
         foreach (var selection in request.Selections)
         {
             var existingOption = player.Character.StudentPhase.Options.FirstOrDefault(o => o.Id == selection.Key);
             if (existingOption != null)
             {
+                if (selection.Value < existingOption.FilledSlots || selection.Value > existingOption.MaxSlots)
+                {
+                    throw new ArgumentException($"Cheat gedetecteerd: Ongeldig aantal slots voor {existingOption.TitleKey}");
+                }
+
                 newlyAddedPoints += (selection.Value - existingOption.FilledSlots);
             }
         }
@@ -337,11 +362,6 @@ public class GameSessionService : IGameSessionService
 
             if (optionToUpdate != null)
             {
-                if (selection.Value > optionToUpdate.MaxSlots)
-                {
-                    throw new ArgumentException($"Cheat gedetecteerd: Te veel slots voor {optionToUpdate.TitleKey}");
-                }
-
                 optionToUpdate.FilledSlots = selection.Value;
             }
         }
@@ -363,6 +383,15 @@ public class GameSessionService : IGameSessionService
 
         if (player == null) throw new ArgumentException("Player not found");
 
+        // Dubbele aanroep: al afgerond
+        if (player.CurrentPhase == "second-work-phase") return player.CurrentPhase;
+
+        // Enkel afronden als de berekeningen goedgekeurd zijn (NextPhase zet dan SecondWorkphaseState)
+        if (player.CurrentPhase != "first-work-phase" || player.DossierState is not SecondWorkphaseState)
+        {
+            throw new InvalidOperationException("De eerste werkfase is nog niet correct afgerond.");
+        }
+
         player.CurrentPhase = "second-work-phase";
         await roomRepo.UpdateAsync(room);
 
@@ -379,9 +408,9 @@ public class GameSessionService : IGameSessionService
             .SelectMany(t => t.Players)
             .FirstOrDefault(p => p.PlayerId == playerId);
         if (player == null) throw new ArgumentException("Player not found");
-        
-        //setting workphasestate?
-        if (player.DossierState is not SecondWorkphaseState) player.DossierState = new FirstWorkphaseState(player.Dossier, memoryAccessService);
+        if (player.Dossier == null) throw new InvalidOperationException("Het spel is nog niet gestart.");
+
+        player.DossierState ??= new FirstWorkphaseState(player.Dossier, memoryAccessService);
         var dossierData = new DossierData();
         if (player.DossierState is FirstWorkphaseState)  dossierData = request.AsModelPhase1();
         if (player.DossierState is SecondWorkphaseState) dossierData = request.AsModelPhase2();
@@ -399,13 +428,14 @@ public class GameSessionService : IGameSessionService
             .SelectMany(t => t.Players)
             .FirstOrDefault(p => p.PlayerId == playerId);
         if (player == null) throw new ArgumentException("Player not found");
+        if (player.Dossier == null) throw new InvalidOperationException("Het spel is nog niet gestart.");
 
+        // State eerst zetten, anders blijft dossierData leeg bij de eerste aanroep
+        player.DossierState ??= new FirstWorkphaseState(player.Dossier, memoryAccessService);
         var dossierData = new DossierData();
         if (player.DossierState is FirstWorkphaseState)  dossierData = request.AsModelPhase1();
         if (player.DossierState is SecondWorkphaseState) dossierData = request.AsModelPhase2();
-        
-        //setting workphasestate?
-        if (player.DossierState is not SecondWorkphaseState) player.DossierState = new FirstWorkphaseState(player.Dossier, memoryAccessService);
+
         //TODO: just a quick way to go to nextphase rn
         var result = player.CheckCalculations(dossierData, investmentCalculator);
         if (result && player.DossierState is FirstWorkphaseState) player.DossierState.NextPhase(player);

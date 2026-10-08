@@ -2,6 +2,7 @@ export interface JoinTableRequest {
     roomCode: string;
     tableNumber: number;
     nickName: string;
+    playerId?: string;
 }
  
 export interface LeaveTableRequest {
