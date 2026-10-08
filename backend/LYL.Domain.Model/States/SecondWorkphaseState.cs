@@ -35,7 +35,7 @@ public class SecondWorkphaseState(Dossier dossier, IMemoryAccessService service)
         //=> check living situation
 
         bool needsCar = false; //kan merge conflict veroorzaken vanaf hier dit accepteren! Als er extra's aan toegevoegd zijn. Beide accepteren!!
-        if (house_id.StartsWith("buy"))
+        if (house_id?.StartsWith("buy") == true)
         {
             var result = service.GetHouseInfoBuy(house_id);
             Check(result.maxSpace >= adults + children, "housing_cost");
@@ -171,7 +171,7 @@ public class SecondWorkphaseState(Dossier dossier, IMemoryAccessService service)
 
         //One-time purchase cost
         string? house_id = service.GetHouseId(data.HousingCost);
-        if (house_id.StartsWith("buy"))
+        if (house_id?.StartsWith("buy") == true)
         {
             decimal purchaseCost = service.GetHousePurchaseCost(house_id);
             resultCheck &= data.HousingPurchaseCost == purchaseCost;
@@ -576,7 +576,7 @@ public class SecondWorkphaseState(Dossier dossier, IMemoryAccessService service)
                 var rentsHouse = true;
                 string? house_id = service.GetHouseId(data.HousingCost);
                 
-                if (house_id.StartsWith("buy")) rentsHouse = false;
+                if (house_id?.StartsWith("buy") == true) rentsHouse = false;
                 
                 if (!rentsHouse) 
                 {

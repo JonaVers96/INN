@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, createContext, useContext } from "react";
 import { useTranslation } from "react-i18next";
 import { useFormik, type FormikProps } from "formik";
 import { useCharacter } from "../hooks/useCharacter";
@@ -11,15 +11,27 @@ import axios from "axios";
 import PartnerWheelOverlay from "./PartnerWheelOverlay";
 import ChildrenWheelOverlay from "./ChildrenWheelOverlay";
 
+type CheckResult = { isValid: boolean; invalidFields: string[] };
+
+const InvalidFieldsContext = createContext<{
+  invalidFields: string[];
+  clearField: (name: string) => void;
+}>({ invalidFields: [], clearField: () => {} });
+
+const errorStyle = (invalid: boolean): React.CSSProperties =>
+  invalid
+    ? { boxShadow: "inset 0 0 0 2px #dc2626", backgroundColor: "#fee2e2" }
+    : {};
+
 // API 1: Controleert invoer van de bovenste tabellen
 const apiCheckInputs = async (
   phase: 1 | 2,
   data: TopTableValues,
-): Promise<boolean> => {
+): Promise<CheckResult> => {
   const roomCode = localStorage.getItem("roomCode");
   const playerId = localStorage.getItem("playerId");
 
-  if (!roomCode || !playerId) return false;
+  if (!roomCode || !playerId) return { isValid: false, invalidFields: [] };
 
   // Als een veld een lege string is, verander naar null, anders backend helemaal flippen
   const payload = Object.fromEntries(
@@ -34,10 +46,16 @@ const apiCheckInputs = async (
       `${import.meta.env.VITE_API_BASE_URL}/api/game/${roomCode}/player/${playerId}/check-dossier-monthly`,
       payload,
     );
-    return response.data.isValid;
+    // oude backend: gewoon true/false
+    if (typeof response.data === "boolean")
+      return { isValid: response.data, invalidFields: [] };
+    return {
+      isValid: !!response.data.isValid,
+      invalidFields: response.data.invalidFields ?? [],
+    };
   } catch (error) {
     console.error(`Fout bij checken inputs fase ${phase}:`, error);
-    return false;
+    return { isValid: false, invalidFields: [] };
   }
 };
 
@@ -123,43 +141,59 @@ const InputRow = ({
   col2ReadOnly: boolean;
   col2Blurred: boolean;
   placeholder?: string;
-}) => (
-  <div
-    className="flex gap-0 mb-1 text-xs"
-    style={{ backgroundColor: "#FEF9E7" }}
-  >
-    <span className="flex-1 text-slate-600 py-1 pl-2">{label}</span>
+}) => {
+  const { invalidFields, clearField } = useContext(InvalidFieldsContext);
 
-    <input
-      name={namePhase1}
-      type="number"
-      placeholder={placeholder}
-      onChange={formik.handleChange}
-      value={formik.values[namePhase1]}
-      readOnly={col1ReadOnly}
-      className={`w-32 text-center py-1 outline-none ${
-        col1ReadOnly ? "opacity-70 pointer-events-none" : ""
-      }`}
-      style={{ backgroundColor: "#FDE8DF" }}
-    />
+  return (
+    <div
+      className="flex gap-0 mb-1 text-xs"
+      style={{ backgroundColor: "#FEF9E7" }}
+    >
+      <span className="flex-1 text-slate-600 py-1 pl-2">{label}</span>
 
-    <input
-      name={namePhase2}
-      type="number"
-      onChange={formik.handleChange}
-      value={formik.values[namePhase2]}
-      readOnly={col2ReadOnly}
-      className={`w-32 text-center py-1 outline-none ${
-        col2Blurred
-          ? "blur-[1px] pointer-events-none"
-          : col2ReadOnly
-            ? "opacity-70 pointer-events-none"
-            : ""
-      }`}
-      style={{ backgroundColor: "#E8F7F5" }}
-    />
-  </div>
-);
+      <input
+        name={namePhase1}
+        type="number"
+        placeholder={placeholder}
+        onChange={(e) => {
+          clearField(namePhase1);
+          formik.handleChange(e);
+        }}
+        value={formik.values[namePhase1]}
+        readOnly={col1ReadOnly}
+        className={`w-32 text-center py-1 outline-none ${
+          col1ReadOnly ? "opacity-70 pointer-events-none" : ""
+        }`}
+        style={{
+          backgroundColor: "#FDE8DF",
+          ...errorStyle(invalidFields.includes(namePhase1)),
+        }}
+      />
+
+      <input
+        name={namePhase2}
+        type="number"
+        onChange={(e) => {
+          clearField(namePhase2);
+          formik.handleChange(e);
+        }}
+        value={formik.values[namePhase2]}
+        readOnly={col2ReadOnly}
+        className={`w-32 text-center py-1 outline-none ${
+          col2Blurred
+            ? "blur-[1px] pointer-events-none"
+            : col2ReadOnly
+              ? "opacity-70 pointer-events-none"
+              : ""
+        }`}
+        style={{
+          backgroundColor: "#E8F7F5",
+          ...errorStyle(invalidFields.includes(namePhase2)),
+        }}
+      />
+    </div>
+  );
+};
 
 const CalcInput = ({
   name,
@@ -254,32 +288,16 @@ const InputSheet = ({
   const [showPartnerWheel, setShowPartnerWheel] = useState(false);
   const [showChildrenWheel, setShowChildrenWheel] = useState(false);
 
+  const [invalidFields, setInvalidFields] = useState<string[]>([]);
+  const clearField = (name: string) =>
+    setInvalidFields((prev) => prev.filter((f) => f !== name));
+
   const col1ReadOnly = step !== "PHASE1_INPUT";
   const col2ReadOnly = step !== "PHASE2_INPUT";
   const col2Blurred = step === "PHASE1_INPUT" || step === "PHASE1_CALC";
 
   // klaarzetten children en partner
   const { character } = useCharacter();
-  if (!character)
-    return <div className="p-10 text-center">{t("general.no_role")}</div>;
-  const partnerIndex =
-    character.livingSituation.allPartners.findIndex(
-      (p) => p.id === character.livingSituation.partner?.id,
-    ) ?? 0;
-  const chosenPartnerIndex = partnerIndex >= 0 ? partnerIndex : 0;
-  const chosenChildrenIndex = character?.livingSituation.children ?? 0;
-
-  const handlePartnerAssigned = () => {
-    setShowPartnerWheel(false);
-    setShowChildrenWheel(true);
-  };
-
-  const handleChildrenAssigned = () => {
-    setShowChildrenWheel(false);
-    character.livingSituation.isShown = true;
-    setStep("PHASE2_INPUT");
-    setPhase1Collapsed(true);
-  };
 
   // bepalen of berekeningsvelden readonly zijn
   const p1CalcReadOnly = step !== "PHASE1_CALC";
@@ -348,13 +366,17 @@ const InputSheet = ({
     onSubmit: async (values) => {
       console.log("Submit getriggerd. Actieve stap:", step);
       setHasError(false);
+      setInvalidFields([]);
       setIsChecking(true);
 
       try {
         if (step === "PHASE1_INPUT") {
-          const isValid = await apiCheckInputs(1, values);
-          if (isValid) setStep("PHASE1_CALC");
-          else setHasError(true);
+          const result = await apiCheckInputs(1, values);
+          if (result.isValid) setStep("PHASE1_CALC");
+          else {
+            setInvalidFields(result.invalidFields);
+            setHasError(true);
+          }
         } else if (step === "PHASE1_CALC") {
           const isValid = await apiCheckCalculations(1, values);
           if (isValid) {
@@ -366,11 +388,14 @@ const InputSheet = ({
             setHasError(true);
           }
         } else if (step === "PHASE2_INPUT") {
-          const isValid = await apiCheckInputs(2, values);
-          if (isValid) {
+          const result = await apiCheckInputs(2, values);
+          if (result.isValid) {
             setStep("PHASE2_CALC");
             if (onPhase2Complete) onPhase2Complete();
-          } else setHasError(true);
+          } else {
+            setInvalidFields(result.invalidFields);
+            setHasError(true);
+          }
         } else if (step === "PHASE2_CALC") {
           const isValid = await apiCheckCalculations(2, values);
           if (isValid) {
@@ -387,6 +412,27 @@ const InputSheet = ({
       }
     },
   });
+
+  if (!character)
+    return <div className="p-10 text-center">{t("general.no_role")}</div>;
+
+  const partnerIndex = character.livingSituation.allPartners.findIndex(
+    (p) => p.id === character.livingSituation.partner?.id,
+  );
+  const chosenPartnerIndex = partnerIndex >= 0 ? partnerIndex : 0;
+  const chosenChildrenIndex = character.livingSituation.children ?? 0;
+
+  const handlePartnerAssigned = () => {
+    setShowPartnerWheel(false);
+    setShowChildrenWheel(true);
+  };
+
+  const handleChildrenAssigned = () => {
+    setShowChildrenWheel(false);
+    character.livingSituation.isShown = true;
+    setStep("PHASE2_INPUT");
+    setPhase1Collapsed(true);
+  };
 
   const getTopButtonProps = () => {
     if (step === "PHASE1_INPUT") {
@@ -428,6 +474,7 @@ const InputSheet = ({
   const topBtn = getTopButtonProps();
 
   return (
+    <InvalidFieldsContext.Provider value={{ invalidFields, clearField }}>
     <div className="flex">
       <div className="flex-1">
         <form onSubmit={formik.handleSubmit} className="h-full overflow-y-auto">
@@ -584,9 +631,15 @@ const InputSheet = ({
               <input
                 name="remaining_budget_phase1"
                 type="number"
-                onChange={formik.handleChange}
+                onChange={(e) => {
+                  clearField("remaining_budget_phase1");
+                  formik.handleChange(e);
+                }}
                 value={formik.values.remaining_budget_phase1}
                 readOnly={col1ReadOnly}
+                style={errorStyle(
+                  invalidFields.includes("remaining_budget_phase1"),
+                )}
                 className={`w-full mx-1 bg-transparent text-center outline-none font-black ${
                   col1ReadOnly ? "opacity-70 pointer-events-none" : ""
                 }`}
@@ -601,9 +654,15 @@ const InputSheet = ({
               <input
                 name="remaining_budget_phase2"
                 type="number"
-                onChange={formik.handleChange}
+                onChange={(e) => {
+                  clearField("remaining_budget_phase2");
+                  formik.handleChange(e);
+                }}
                 value={formik.values.remaining_budget_phase2}
                 readOnly={col2ReadOnly}
+                style={errorStyle(
+                  invalidFields.includes("remaining_budget_phase2"),
+                )}
                 className={`w-full mx-1 bg-transparent text-center outline-none font-black ${
                   col2Blurred
                     ? "blur-[1px] pointer-events-none"
@@ -988,6 +1047,7 @@ const InputSheet = ({
         onChildrenAssigned={handleChildrenAssigned}
       />
     </div>
+    </InvalidFieldsContext.Provider>
   );
 };
 
