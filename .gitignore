@@ -1,5 +1,6 @@
 # Mac
 .DS_Store
+
 # Build output
 **/bin/
 **/obj/
@@ -47,3 +48,5 @@ liveyourlife.tar
 # Sigrid CI
 sigrid-ci-output/
 sigridci/
+
+docker-compose.override.yml
