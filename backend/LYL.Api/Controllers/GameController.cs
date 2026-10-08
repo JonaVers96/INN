@@ -147,7 +147,7 @@ public class GameController(IGameSessionService gameSessionService, IHubContext<
     }
 
     [HttpPost("{roomId}/player/{playerId}/check-dossier-monthly")]
-    public async Task<ActionResult<bool>> CheckBalanceMonthInputs(string roomId, string playerId,
+    public async Task<ActionResult<DossierCheckResult>> CheckBalanceMonthInputs(string roomId, string playerId,
         [FromBody] DossierCheckRequest request)
     {
         
@@ -156,8 +156,8 @@ public class GameController(IGameSessionService gameSessionService, IHubContext<
 
          try
          {
-             bool isCorrect = await gameSessionService.CheckPhaseInputsMonthlyAsync(roomId, playerGuid, request);
-             return Ok(isCorrect);
+             var result = await gameSessionService.CheckPhaseInputsMonthlyAsync(roomId, playerGuid, request);
+             return Ok(result);
          }
          catch (Exception ex)
          {

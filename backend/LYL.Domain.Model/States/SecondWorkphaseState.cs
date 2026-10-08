@@ -7,25 +7,27 @@ namespace LYL.Domain.Model.States;
 
 public class SecondWorkphaseState(Dossier dossier, IMemoryAccessService service) : DossierState(dossier, service)
 {
-    public override bool CheckBalanceMonth(DossierData data)
+    public override DossierCheckResult CheckBalanceMonth(DossierData data)
     {
-        bool resultCheck = true;
+        var invalid = new List<string>();
+        void Check(bool ok, string field) { if (!ok) invalid.Add(field); }
+
         int adults = 1;
         if (Dossier.LivingSituation.Partner.Wage > 0) adults = 2;
         int children = Dossier.LivingSituation.Children;
 
         //Salary
-        resultCheck &= Dossier.Character.ChosenJob?.AvgNet == data.NetSalary;
+        Check(Dossier.Character.ChosenJob?.AvgNet == data.NetSalary, "net_salary_phase2");
 
         //Salary partner
-        resultCheck &= Dossier.LivingSituation.Partner.Wage == data.NetSalaryPartner.GetValueOrDefault();
+        Check(Dossier.LivingSituation.Partner.Wage == data.NetSalaryPartner.GetValueOrDefault(), "net_salary_partner");
 
         //Housing: price exists: int (monthly loan/monthly) => string (house_id), string (buy/rent)
         string? house_id = service.GetHouseId(data.HousingCost);
         if (house_id == "rent_social") 
         {
             decimal totalSalary = data.NetSalary + data.NetSalaryPartner.GetValueOrDefault();
-            resultCheck &= CheckSocialHousingCondition(totalSalary, children);
+            Check(CheckSocialHousingCondition(totalSalary, children), "social_housing_condition");
         }
         //Housing buy: int (maxSpace), bool (needsCar), int (startBudget)
         //=> check living situation and budget
@@ -36,33 +38,37 @@ public class SecondWorkphaseState(Dossier dossier, IMemoryAccessService service)
         if (house_id.StartsWith("buy"))
         {
             var result = service.GetHouseInfoBuy(house_id);
-            resultCheck &= result.maxSpace >= adults + children;
-            if (result.needsCar) resultCheck &= data.TransportMonthlyCost > 100;
+            Check(result.maxSpace >= adults + children, "housing_cost");
+            if (result.needsCar) Check(data.TransportMonthlyCost > 100, "transport_monthly_cost");
             needsCar = result.needsCar;
-            resultCheck &= result.startBudget <= Dossier.firstWorkphaseDossier.Total1 + Dossier.LivingSituation.Partner.Savings;
+            Check(result.startBudget <= Dossier.firstWorkphaseDossier.Total1 + Dossier.LivingSituation.Partner.Savings, "housing_cost");
             //TODO: buy conditions (up to 40% of salary may be used to repay the loan)
         } else if (!string.IsNullOrEmpty(house_id))
         {
             var result = service.GetHouseInfoRent(house_id);
-            resultCheck &= result.maxSpace >= adults + children;
+            Check(result.maxSpace >= adults + children, "housing_cost");
             needsCar = result.needsCar;
-            if (result.needsCar) resultCheck &= data.TransportMonthlyCost > 100;
+            if (result.needsCar) Check(data.TransportMonthlyCost > 100, "transport_monthly_cost");
             //TODO 100 is hardcoded for no reason, needs to come from database, but 100 is high enough inflation won't have impact anytime soon
         }
-        else return false;
+        else
+        {
+            invalid.Add("housing_cost");
+            return new DossierCheckResult(false, invalid);
+        }
         
 
         //Other living expenses: price is correct: int price, string house_id, int children, bool hasPartner => bool
-        resultCheck &= service.CheckLivingExpense(data.OtherLivingCost, house_id, 
-                children, adults > 1);
+        Check(service.CheckLivingExpense(data.OtherLivingCost, house_id, 
+                children, adults > 1), "other_living_cost");
         
         //Transport: monthly purchase amount: int price => int (check equal to monthly cost), int seats
         //=> check living situation
         (decimal monthlyCarCost, bool isSport, int seats) = service.GetCarInfo(data.TransportPurchaseCost, adults + children);
-        resultCheck &= monthlyCarCost != default;
+        Check(monthlyCarCost != default, "transport_purchase_cost");
         if (seats == 1) monthlyCarCost *= (adults + children);
-        resultCheck &= monthlyCarCost == data.TransportMonthlyCost;
-        if (needsCar) resultCheck &= seats >= adults + children;
+        Check(monthlyCarCost == data.TransportMonthlyCost, "transport_monthly_cost");
+        if (needsCar) Check(seats >= adults + children, "transport_purchase_cost");
         
 
         //Alle volgende velden kijken indien ingevuld
@@ -70,18 +76,18 @@ public class SecondWorkphaseState(Dossier dossier, IMemoryAccessService service)
         //Transport insurance: price exists: int => bool
         if (data.TransportInsuranceCost != null && data.TransportInsuranceCost != 0m)
         {
-            resultCheck &= service.CheckTransportInsurance(data.TransportInsuranceCost, isSport);
+            Check(service.CheckTransportInsurance(data.TransportInsuranceCost, isSport), "transport_insurance_cost");
         }
 
         //Fire Insurance: price is correct: int, house_id => bool
         if (data.FireInsuranceCost != null && data.FireInsuranceCost != 0m)
         {
-            resultCheck &= service.CheckFireInsuranceCost(data.FireInsuranceCost, house_id);
+            Check(service.CheckFireInsuranceCost(data.FireInsuranceCost, house_id), "fire_insurance_cost");
         }
         //Family insurance: price is correct: int => bool
         if (data.FamilyInsuranceCost != null && data.FamilyInsuranceCost != 0m)
         {
-            resultCheck &= service.CheckFamilyInsurance(data.FamilyInsuranceCost);
+            Check(service.CheckFamilyInsurance(data.FamilyInsuranceCost), "family_insurance_cost");
         }
         //Hosp insurance: getting price pp:  => int adultPrice, int CHildPrice
         //=> check living situation => calculate cost => compare
@@ -89,50 +95,52 @@ public class SecondWorkphaseState(Dossier dossier, IMemoryAccessService service)
         {
             var insurance = service.GetHospitalisationInsurance();
             var result = insurance.adult * adults + insurance.child * children ; 
-            resultCheck &= data.HospitalisationInsuranceCost == result ;
+            Check(data.HospitalisationInsuranceCost == result, "hospitalisation_insurance_cost");
         }
         //Accident insurance: look at living sit. => calculate pp => price is correct: int => bool
         if (data.AccidentInsuranceCost != null && data.AccidentInsuranceCost != 0m)
         {
             var price = data.AccidentInsuranceCost / (adults + children);
-            resultCheck &= service.CheckAccidentInsurance(data.AccidentInsuranceCost);
+            Check(service.CheckAccidentInsurance(data.AccidentInsuranceCost), "accident_insurance_cost");
         }
 
-        return resultCheck;
+        return new DossierCheckResult(invalid.Count == 0, invalid);
     }
 
-    public override bool CheckTotalMonthly(DossierData data, Player player)
+    public override DossierCheckResult CheckTotalMonthly(DossierData data, Player player)
     {
-        var resultCheck = CheckBalanceMonth(data);
-        if (resultCheck) // alle gegevens in order?
-        {
-            //uitrekenen balance
-            var balance = data.NetSalary 
-                        + data.NetSalaryPartner.GetValueOrDefault()
-                        - data.HousingCost
-                        - data.OtherLivingCost
-                        - data.TransportMonthlyCost
-                        - data.TransportPurchaseCost
-                        - data.TransportInsuranceCost.GetValueOrDefault()
-                        - data.FireInsuranceCost.GetValueOrDefault()
-                        - data.FamilyInsuranceCost.GetValueOrDefault()
-                        - data.HospitalisationInsuranceCost.GetValueOrDefault()
-                        - data.AccidentInsuranceCost.GetValueOrDefault();
+        var check = CheckBalanceMonth(data);
+        var invalid = new List<string>(check.InvalidFields);
 
-            if (balance == data.RemainingBudget)
-            {
-                if (player.DossierState is SecondWorkphaseState) //opslaan van data
-                {
-                    Dossier.secondWorkphaseDossier = data; 
-                    isChecked = true;
-                    //TODO: opslaan insurances
-                }
-                else throw new Exception("Invalid state");
-                
-                return true;
-            }
+        //uitrekenen balance
+        var balance = data.NetSalary 
+                    + data.NetSalaryPartner.GetValueOrDefault()
+                    - data.HousingCost
+                    - data.OtherLivingCost
+                    - data.TransportMonthlyCost
+                    - data.TransportPurchaseCost
+                    - data.TransportInsuranceCost.GetValueOrDefault()
+                    - data.FireInsuranceCost.GetValueOrDefault()
+                    - data.FamilyInsuranceCost.GetValueOrDefault()
+                    - data.HospitalisationInsuranceCost.GetValueOrDefault()
+                    - data.AccidentInsuranceCost.GetValueOrDefault();
+
+        if (balance != data.RemainingBudget)
+            invalid.Add("remaining_budget_phase2");
+
+        if (invalid.Count > 0)
+            return new DossierCheckResult(false, invalid);
+
+        // Alles klopt: gegevens opslaan
+        if (player.DossierState is SecondWorkphaseState)
+        {
+            Dossier.secondWorkphaseDossier = data; 
+            isChecked = true;
+            //TODO: opslaan insurances
         }
-        return false;
+        else throw new Exception("Invalid state");
+
+        return new DossierCheckResult(true, invalid);
     }
 
     private bool CheckSocialHousingCondition(decimal netSalary, int children)
@@ -145,7 +153,7 @@ public class SecondWorkphaseState(Dossier dossier, IMemoryAccessService service)
     public override bool CheckCalculationPhase(DossierData data, Player player, IInvestmentCalculator calculator)
     {
         bool resultCheck = true;
-        resultCheck &= CheckTotalMonthly(data, player);
+        resultCheck &= CheckTotalMonthly(data, player).IsValid;
         Console.WriteLine("begin test");
         Console.WriteLine(resultCheck);
 

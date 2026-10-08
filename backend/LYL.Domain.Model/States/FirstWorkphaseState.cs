@@ -10,63 +10,64 @@ public class FirstWorkphaseState(Dossier dossier, IMemoryAccessService service) 
 {
     //private DossierData data = dossier.firstWorkphaseDossier;
 
-    public override bool CheckBalanceMonth(DossierData data)
+    public override DossierCheckResult CheckBalanceMonth(DossierData data)
     {
-        bool resultCheck = true;
+        var invalid = new List<string>();
+        void Check(bool ok, string field) { if (!ok) invalid.Add(field); }
 
         //Salary => kijken naar character
-        resultCheck &= Dossier.Character.ChosenJob?.StartNet == data.NetSalary;
+        Check(Dossier.Character.ChosenJob?.StartNet == data.NetSalary, "net_salary_phase1");
 
         //Housing (rent): price exists: int => house_id (house_id opslaan in string)
         string? house_id = service.GetHouseId(data.HousingCost);
-        resultCheck &= !string.IsNullOrWhiteSpace(house_id);
+        Check(!string.IsNullOrWhiteSpace(house_id), "housing_cost");
 
         //Get social housing condition if necessary
-        if (house_id == "rent_social") resultCheck &= CheckSocialHousingCondition();
+        if (house_id == "rent_social") Check(CheckSocialHousingCondition(), "social_housing_condition"  );
 
         //Other living expenses: price is correct: int, house_id => bool
-        resultCheck &= service.CheckLivingExpense(data.OtherLivingCost, house_id);
+        Check(service.CheckLivingExpense(data.OtherLivingCost, house_id), "other_living_cost");
 
 
         //Transport: monthly purchase amount: int => int (check equal to monthly cost)
         (decimal monthlyCarCost, bool isSport) = service.GetMonthlyCarCost(data.TransportPurchaseCost);
-        resultCheck &= monthlyCarCost == data.TransportMonthlyCost;
+        Check(monthlyCarCost == data.TransportMonthlyCost, "transport_monthly_cost");
 
         //Alle volgende velden kijken indien ingevuld
 
         //Transport insurance: price exists: int => bool
         if (data.TransportInsuranceCost != null && data.TransportInsuranceCost != 0m)
         {
-            resultCheck &= service.CheckTransportInsurance(data.TransportInsuranceCost, isSport);
+            Check(service.CheckTransportInsurance(data.TransportInsuranceCost, isSport), "transport_insurance_cost");
         }
 
         //Fire Insurance: price is correct: int, house_id => bool
         if (data.FireInsuranceCost != null && data.FireInsuranceCost != 0m)
         {
-            resultCheck &= service.CheckFireInsuranceCost(data.FireInsuranceCost, house_id);
+            Check(service.CheckFireInsuranceCost(data.FireInsuranceCost, house_id), "fire_insurance_cost");
         }
 
         //Family insurance: price is correct: int => bool
         if (data.FamilyInsuranceCost != null && data.FamilyInsuranceCost != 0m)
         {
-            resultCheck &= service.CheckFamilyInsurance(data.FamilyInsuranceCost);
+            Check(service.CheckFamilyInsurance(data.FamilyInsuranceCost), "family_insurance_cost");
         }
 
         //Hosp insurance: price 1 adult is correct: int => bool
         if (data.HospitalisationInsuranceCost != null && data.HospitalisationInsuranceCost != 0m)
         {
             var result = service.GetHospitalisationInsurance();
-            resultCheck &= data.HospitalisationInsuranceCost == result.adult ;
+            Check(data.HospitalisationInsuranceCost == result.adult, "hospitalisation_insurance_cost");
         }
 
         //Accident insurance: price is correct: int => bool
         if (data.AccidentInsuranceCost != null && data.AccidentInsuranceCost != 0m)
         {
-            resultCheck &= service.CheckAccidentInsurance(data.AccidentInsuranceCost);
+            Check(service.CheckAccidentInsurance(data.AccidentInsuranceCost), "accident_insurance_cost");
         }
 
 
-        return resultCheck;
+        return new DossierCheckResult(invalid.Count == 0, invalid);
     }
 
     private bool CheckSocialHousingCondition()
@@ -76,11 +77,10 @@ public class FirstWorkphaseState(Dossier dossier, IMemoryAccessService service) 
         return Dossier.Character.ChosenJob?.StartNet < maxIncome;
     }
 
-    public override bool CheckTotalMonthly(DossierData data, Player player)
+    public override DossierCheckResult CheckTotalMonthly(DossierData data, Player player)
     {
-        var resultCheck = CheckBalanceMonth(data);
-        if (resultCheck) // alle gegevens in order?
-        {
+        var check = CheckBalanceMonth(data);
+        var invalid = new List<string>(check.InvalidFields);
             //uitrekenen balance
             var balance = data.NetSalary
                           - data.HousingCost
@@ -93,28 +93,29 @@ public class FirstWorkphaseState(Dossier dossier, IMemoryAccessService service) 
                           - data.HospitalisationInsuranceCost.GetValueOrDefault()
                           - data.AccidentInsuranceCost.GetValueOrDefault();
 
-            if (balance == data.RemainingBudget)
-            {
-                if (player.DossierState is FirstWorkphaseState) //opslaan van data
-                {
-                    Dossier.firstWorkphaseDossier = data;
-                    isChecked = true;
-                }
-                else throw new Exception("Invalid state");
+    if (balance != data.RemainingBudget)
+        invalid.Add("remaining_budget_phase1");
 
-                return true;
-            } //TODO dit testen!
-        }
+    if (invalid.Count > 0)
+        return new DossierCheckResult(false, invalid);
 
-        return false;
+    // Alles klopt: gegevens opslaan
+    if (player.DossierState is FirstWorkphaseState)
+    {
+        Dossier.firstWorkphaseDossier = data;
+        isChecked = true;
     }
+    else throw new Exception("Invalid state");
+
+    return new DossierCheckResult(true, invalid);
+}
 
     public override bool CheckCalculationPhase(DossierData data, Player player,  IInvestmentCalculator calculator)
     {
         bool resultCheck = true;
 
         //Remaining budget calculation
-        resultCheck &= CheckTotalMonthly(data, player);
+        resultCheck &= CheckTotalMonthly(data, player).IsValid;
         resultCheck &= data.CalcRemainingBudgetWholePhase1 ==
                        data.RemainingBudget * Dossier.Character.Profile.ExperienceInMonths;
 

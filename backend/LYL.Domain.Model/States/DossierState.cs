@@ -16,8 +16,8 @@ public abstract class DossierState
         MemoryAccessService = memoryAccessService;
     }
 
-    public abstract bool CheckBalanceMonth(DossierData data);
-    public abstract bool CheckTotalMonthly(DossierData data, Player player);
+    public abstract DossierCheckResult CheckBalanceMonth(DossierData data);
+    public abstract DossierCheckResult CheckTotalMonthly(DossierData data, Player player);
     public abstract bool CheckCalculationPhase(DossierData data, Player player,  IInvestmentCalculator calculator);
     public abstract void NextPhase(Player player);
     public abstract bool CheckEventCardsInputAndTotal4(DossierData data, Player player);

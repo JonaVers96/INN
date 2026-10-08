@@ -21,7 +21,7 @@ public interface IGameSessionService
     Task<Character?> GetPlayerCharacterAsync(string roomCode, string playerId);
     Task<string> CompleteStudentPhaseAsync(string roomCode, Guid playerId, CompleteStudentPhaseRequest request);
     Task<string> CompleteFirstWorkPhaseAsync(string roomCode, Guid playerId);
-    Task<bool> CheckPhaseInputsMonthlyAsync(string roomCode, Guid playerId, DossierCheckRequest request); //TODO aanpassen naa request
+    Task<DossierCheckResult> CheckPhaseInputsMonthlyAsync(string roomCode, Guid playerId, DossierCheckRequest request); //TODO aanpassen naa request
     Task<bool> CheckPhaseInputsCalcsAsync(string roomCode, Guid playerId, DossierCheckRequest request);
     Task CloseRoomAsync(string roomCode);
     Task<Dictionary<int, List<EventCard>>> GetEventCards();

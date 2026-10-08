@@ -399,7 +399,7 @@ public class GameSessionService : IGameSessionService
     }
     
 
-    public async Task<bool> CheckPhaseInputsMonthlyAsync(string roomCode, Guid playerId, DossierCheckRequest request) 
+    public async Task<DossierCheckResult> CheckPhaseInputsMonthlyAsync(string roomCode, Guid playerId, DossierCheckRequest request) 
     {
         var room = await roomRepo.GetByRoomCodeAsync(roomCode);
         if (room == null) throw new ArgumentException("Room not found");

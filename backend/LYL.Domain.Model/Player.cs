@@ -27,7 +27,7 @@ public class Player
         Dossier = new(Character, Character.LivingSituation);
     }
 
-    public bool CheckBalanceMonth(DossierData data)
+    public DossierCheckResult CheckBalanceMonth(DossierData data)
     {
         return DossierState.CheckBalanceMonth(data);
     }
@@ -39,7 +39,7 @@ public class Player
         //DossierState.NextPhase
     }
 
-    public bool CheckMontlhy(DossierData data)
+    public DossierCheckResult CheckMontlhy(DossierData data)
     {
         return DossierState.CheckTotalMonthly(data, this);
     }

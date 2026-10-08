@@ -34,7 +34,7 @@ const apiCheckInputs = async (
       `${import.meta.env.VITE_API_BASE_URL}/api/game/${roomCode}/player/${playerId}/check-dossier-monthly`,
       payload,
     );
-    return response.data;
+    return response.data.isValid;
   } catch (error) {
     console.error(`Fout bij checken inputs fase ${phase}:`, error);
     return false;
