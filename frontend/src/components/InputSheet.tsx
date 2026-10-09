@@ -91,10 +91,11 @@ const apiCheckCalculations = async (
 
   try {
     const response = await axios.post(
+      
       `${import.meta.env.VITE_API_BASE_URL}/api/game/${roomCode}/player/${playerId}/check-dossier-total`,
       payload,
     );
-
+    console.log("check-dossier-total antwoord:", response.data);
     return response.data;
   } catch (error) {
     console.error(`Fout bij checken calculaties fase ${phase}:`, error);

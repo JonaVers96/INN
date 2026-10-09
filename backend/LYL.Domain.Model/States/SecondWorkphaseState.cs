@@ -20,14 +20,14 @@ public class SecondWorkphaseState(Dossier dossier, IMemoryAccessService service)
         Check(Dossier.Character.ChosenJob?.AvgNet == data.NetSalary, "net_salary_phase2");
 
         //Salary partner
-        Check(Dossier.LivingSituation.Partner.Wage == data.NetSalaryPartner.GetValueOrDefault(), "net_salary_partner");
+        Check(Dossier.LivingSituation.Partner.Wage == data.NetSalaryPartner.GetValueOrDefault(), "partner_salary_phase2");
 
         //Housing: price exists: int (monthly loan/monthly) => string (house_id), string (buy/rent)
         string? house_id = service.GetHouseId(data.HousingCost);
         if (house_id == "rent_social") 
         {
             decimal totalSalary = data.NetSalary + data.NetSalaryPartner.GetValueOrDefault();
-            Check(CheckSocialHousingCondition(totalSalary, children), "social_housing_condition");
+            Check(CheckSocialHousingCondition(totalSalary, children), "monthly_rent_phase2");
         }
         //Housing buy: int (maxSpace), bool (needsCar), int (startBudget)
         //=> check living situation and budget
@@ -38,37 +38,37 @@ public class SecondWorkphaseState(Dossier dossier, IMemoryAccessService service)
         if (house_id?.StartsWith("buy") == true)
         {
             var result = service.GetHouseInfoBuy(house_id);
-            Check(result.maxSpace >= adults + children, "housing_cost");
-            if (result.needsCar) Check(data.TransportMonthlyCost > 100, "transport_monthly_cost");
+            Check(result.maxSpace >= adults + children, "monthly_rent_phase2");
+            if (result.needsCar) Check(data.TransportMonthlyCost > 100, "monthly_cost_phase2");
             needsCar = result.needsCar;
-            Check(result.startBudget <= Dossier.firstWorkphaseDossier.Total1 + Dossier.LivingSituation.Partner.Savings, "housing_cost");
+            Check(result.startBudget <= Dossier.firstWorkphaseDossier.Total1 + Dossier.LivingSituation.Partner.Savings, "monthly_rent_phase2");
             //TODO: buy conditions (up to 40% of salary may be used to repay the loan)
         } else if (!string.IsNullOrEmpty(house_id))
         {
             var result = service.GetHouseInfoRent(house_id);
-            Check(result.maxSpace >= adults + children, "housing_cost");
+            Check(result.maxSpace >= adults + children, "monthly_rent_phase2");
             needsCar = result.needsCar;
-            if (result.needsCar) Check(data.TransportMonthlyCost > 100, "transport_monthly_cost");
+            if (result.needsCar) Check(data.TransportMonthlyCost > 100, "monthly_cost_phase2");
             //TODO 100 is hardcoded for no reason, needs to come from database, but 100 is high enough inflation won't have impact anytime soon
         }
         else
         {
-            invalid.Add("housing_cost");
+            invalid.Add("monthly_rent_phase2");
             return new DossierCheckResult(false, invalid);
         }
         
 
         //Other living expenses: price is correct: int price, string house_id, int children, bool hasPartner => bool
         Check(service.CheckLivingExpense(data.OtherLivingCost, house_id, 
-                children, adults > 1), "other_living_cost");
+                children, adults > 1), "living_costs_phase2");
         
         //Transport: monthly purchase amount: int price => int (check equal to monthly cost), int seats
         //=> check living situation
         (decimal monthlyCarCost, bool isSport, int seats) = service.GetCarInfo(data.TransportPurchaseCost, adults + children);
-        Check(monthlyCarCost != default, "transport_purchase_cost");
+        Check(monthlyCarCost != default, "purchase_monthly_phase2");
         if (seats == 1) monthlyCarCost *= (adults + children);
-        Check(monthlyCarCost == data.TransportMonthlyCost, "transport_monthly_cost");
-        if (needsCar) Check(seats >= adults + children, "transport_purchase_cost");
+        Check(monthlyCarCost == data.TransportMonthlyCost, "monthly_cost_phase2");
+        if (needsCar) Check(seats >= adults + children, "car_insurance_phase2");
         
 
         //Alle volgende velden kijken indien ingevuld
@@ -76,18 +76,18 @@ public class SecondWorkphaseState(Dossier dossier, IMemoryAccessService service)
         //Transport insurance: price exists: int => bool
         if (data.TransportInsuranceCost != null && data.TransportInsuranceCost != 0m)
         {
-            Check(service.CheckTransportInsurance(data.TransportInsuranceCost, isSport), "transport_insurance_cost");
+            Check(service.CheckTransportInsurance(data.TransportInsuranceCost, isSport), "car_insurance_phase2");
         }
 
         //Fire Insurance: price is correct: int, house_id => bool
         if (data.FireInsuranceCost != null && data.FireInsuranceCost != 0m)
         {
-            Check(service.CheckFireInsuranceCost(data.FireInsuranceCost, house_id), "fire_insurance_cost");
+            Check(service.CheckFireInsuranceCost(data.FireInsuranceCost, house_id), "fire_insurance_phase2");
         }
         //Family insurance: price is correct: int => bool
         if (data.FamilyInsuranceCost != null && data.FamilyInsuranceCost != 0m)
         {
-            Check(service.CheckFamilyInsurance(data.FamilyInsuranceCost), "family_insurance_cost");
+            Check(service.CheckFamilyInsurance(data.FamilyInsuranceCost), "family_insurance_phase2");
         }
         //Hosp insurance: getting price pp:  => int adultPrice, int CHildPrice
         //=> check living situation => calculate cost => compare
@@ -95,16 +95,16 @@ public class SecondWorkphaseState(Dossier dossier, IMemoryAccessService service)
         {
             var insurance = service.GetHospitalisationInsurance();
             var result = insurance.adult * adults + insurance.child * children ; 
-            Check(data.HospitalisationInsuranceCost == result, "hospitalisation_insurance_cost");
+            Check(data.HospitalisationInsuranceCost == result, "hospital_insurance_phase2");
         }
         //Accident insurance: look at living sit. => calculate pp => price is correct: int => bool
         if (data.AccidentInsuranceCost != null && data.AccidentInsuranceCost != 0m)
         {
             var price = data.AccidentInsuranceCost / (adults + children);
-            Check(service.CheckAccidentInsurance(data.AccidentInsuranceCost), "accident_insurance_cost");
+            Check(service.CheckAccidentInsurance(data.AccidentInsuranceCost), "accident_insurance_phase2");
         }
 
-        return new DossierCheckResult(invalid.Count == 0, invalid);
+        return new DossierCheckResult(invalid.Count == 0, invalid.Distinct().ToList());
     }
 
     public override DossierCheckResult CheckTotalMonthly(DossierData data, Player player)

@@ -20,50 +20,48 @@ public class FirstWorkphaseState(Dossier dossier, IMemoryAccessService service) 
 
         //Housing (rent): price exists: int => house_id (house_id opslaan in string)
         string? house_id = service.GetHouseId(data.HousingCost);
-        Check(!string.IsNullOrWhiteSpace(house_id), "housing_cost");
+        Check(!string.IsNullOrWhiteSpace(house_id), "monthhly_rent_phase1");
 
         //Get social housing condition if necessary
-        if (house_id == "rent_social") Check(CheckSocialHousingCondition(), "social_housing_condition"  );
+        if (house_id == "rent_social") Check(CheckSocialHousingCondition(), "net_salary_phase1"  );
 
         //Other living expenses: price is correct: int, house_id => bool
-        Check(service.CheckLivingExpense(data.OtherLivingCost, house_id), "other_living_cost");
+        Check(service.CheckLivingExpense(data.OtherLivingCost, house_id), "living_costs_phase1");
 
 
         //Transport: monthly purchase amount: int => int (check equal to monthly cost)
         (decimal monthlyCarCost, bool isSport) = service.GetMonthlyCarCost(data.TransportPurchaseCost);
-        Check(monthlyCarCost == data.TransportMonthlyCost, "transport_monthly_cost");
-
-        //Alle volgende velden kijken indien ingevuld
+        Check(monthlyCarCost == data.TransportMonthlyCost, "purchase_monthly_phase1");
 
         //Transport insurance: price exists: int => bool
         if (data.TransportInsuranceCost != null && data.TransportInsuranceCost != 0m)
         {
-            Check(service.CheckTransportInsurance(data.TransportInsuranceCost, isSport), "transport_insurance_cost");
+            Check(service.CheckTransportInsurance(data.TransportInsuranceCost, isSport), "car_insurance_phase1");
         }
 
         //Fire Insurance: price is correct: int, house_id => bool
         if (data.FireInsuranceCost != null && data.FireInsuranceCost != 0m)
         {
-            Check(service.CheckFireInsuranceCost(data.FireInsuranceCost, house_id), "fire_insurance_cost");
+            Check(service.CheckFireInsuranceCost(data.FireInsuranceCost, house_id), "fire_insurance_phase1");
         }
 
         //Family insurance: price is correct: int => bool
         if (data.FamilyInsuranceCost != null && data.FamilyInsuranceCost != 0m)
         {
-            Check(service.CheckFamilyInsurance(data.FamilyInsuranceCost), "family_insurance_cost");
+            Check(service.CheckFamilyInsurance(data.FamilyInsuranceCost), "family_insurance_phase1");
         }
 
         //Hosp insurance: price 1 adult is correct: int => bool
         if (data.HospitalisationInsuranceCost != null && data.HospitalisationInsuranceCost != 0m)
         {
             var result = service.GetHospitalisationInsurance();
-            Check(data.HospitalisationInsuranceCost == result.adult, "hospitalisation_insurance_cost");
+            Check(data.HospitalisationInsuranceCost == result.adult, "hospital_insurance_phase1");
         }
 
         //Accident insurance: price is correct: int => bool
         if (data.AccidentInsuranceCost != null && data.AccidentInsuranceCost != 0m)
         {
-            Check(service.CheckAccidentInsurance(data.AccidentInsuranceCost), "accident_insurance_cost");
+            Check(service.CheckAccidentInsurance(data.AccidentInsuranceCost), "accident_insurance_phase1");
         }
 
 
