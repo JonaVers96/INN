@@ -23,6 +23,10 @@ const errorStyle = (invalid: boolean): React.CSSProperties =>
     ? { boxShadow: "inset 0 0 0 2px #dc2626", backgroundColor: "#fee2e2" }
     : {};
 
+// Totaalvelden hebben witte tekst: bij een fout donkere tekst zodat het getal leesbaar blijft op de rode achtergrond
+const totalErrorStyle = (invalid: boolean): React.CSSProperties =>
+  invalid ? { ...errorStyle(true), color: "#991b1b" } : {};
+
 // API 1: Controleert invoer van de bovenste tabellen
 const apiCheckInputs = async (
   phase: 1 | 2,
@@ -76,11 +80,11 @@ const apiCompleteFirstWorkPhase = async (): Promise<void> => {
 const apiCheckCalculations = async (
   phase: 1 | 2,
   data: BudgetFormValues,
-): Promise<boolean> => {
+): Promise<CheckResult> => {
   const roomCode = localStorage.getItem("roomCode");
   const playerId = localStorage.getItem("playerId");
 
-  if (!roomCode || !playerId) return false;
+  if (!roomCode || !playerId) return { isValid: false, invalidFields: [] };
 
   const payload = Object.fromEntries(
     Object.entries(data).map(([key, value]) => [
@@ -96,10 +100,13 @@ const apiCheckCalculations = async (
       payload,
     );
     console.log("check-dossier-total antwoord:", response.data);
-    return response.data;
+    return {
+      isValid: !!response.data.isValid,
+      invalidFields: response.data.invalidFields ?? [],
+    };
   } catch (error) {
     console.error(`Fout bij checken calculaties fase ${phase}:`, error);
-    return false;
+    return { isValid: false, invalidFields: [] };
   }
 };
 
@@ -206,23 +213,31 @@ const CalcInput = ({
   formik: FormikProps<BudgetFormValues>;
   readOnly: boolean;
   prefix?: string;
-}) => (
-  <div className="flex items-center w-full gap-1">
-    {prefix && <span className="whitespace-nowrap">{prefix}</span>}
-    <input
-      name={name}
-      type="number"
-      onChange={formik.handleChange}
-      value={formik.values[name]}
-      readOnly={readOnly}
-      className={`flex-1 min-w-0 text-right bg-transparent outline-none border-b ${
-        readOnly
-          ? "border-transparent opacity-70 pointer-events-none"
-          : "border-slate-400"
-      }`}
-    />
-  </div>
-);
+}) => {
+  const { invalidFields, clearField } = useContext(InvalidFieldsContext);
+
+  return (
+    <div className="flex items-center w-full gap-1">
+      {prefix && <span className="whitespace-nowrap">{prefix}</span>}
+      <input
+        name={name}
+        type="number"
+        onChange={(e) => {
+          clearField(name);
+          formik.handleChange(e);
+        }}
+        value={formik.values[name]}
+        readOnly={readOnly}
+        className={`flex-1 min-w-0 text-right bg-transparent outline-none border-b ${
+          readOnly
+            ? "border-transparent opacity-70 pointer-events-none"
+            : "border-slate-400"
+        }`}
+        style={errorStyle(invalidFields.includes(name))}
+      />
+    </div>
+  );
+};
 
 const CalcRow = ({
   label,
@@ -379,13 +394,14 @@ const InputSheet = ({
             setHasError(true);
           }
         } else if (step === "PHASE1_CALC") {
-          const isValid = await apiCheckCalculations(1, values);
-          if (isValid) {
+          const result = await apiCheckCalculations(1, values);
+          if (result.isValid) {
             await apiCompleteFirstWorkPhase();
             setShowPartnerWheel(true);
             // setStep("PHASE2_INPUT");
             // setPhase1Collapsed(true);
           } else {
+            setInvalidFields(result.invalidFields);
             setHasError(true);
           }
         } else if (step === "PHASE2_INPUT") {
@@ -398,10 +414,11 @@ const InputSheet = ({
             setHasError(true);
           }
         } else if (step === "PHASE2_CALC") {
-          const isValid = await apiCheckCalculations(2, values);
-          if (isValid) {
+          const result = await apiCheckCalculations(2, values);
+          if (result.isValid) {
             setStep("DONE");
           } else {
+            setInvalidFields(result.invalidFields);
             setHasError(true);
           }
         }
@@ -777,9 +794,13 @@ const InputSheet = ({
                       <input
                         name="calc_p1_total1"
                         type="number"
-                        onChange={formik.handleChange}
+                        onChange={(e) => {
+                          clearField("calc_p1_total1");
+                          formik.handleChange(e);
+                        }}
                         value={formik.values.calc_p1_total1}
                         readOnly={p1CalcReadOnly}
+                        style={totalErrorStyle(invalidFields.includes("calc_p1_total1"))}
                         className={`flex-1 min-w-0 text-right bg-transparent outline-none border-b ${p1CalcReadOnly ? "border-transparent opacity-70 pointer-events-none text-white" : "border-white text-white"}`}
                       />
                     </div>
@@ -903,9 +924,13 @@ const InputSheet = ({
                       <input
                         name={name}
                         type="number"
-                        onChange={formik.handleChange}
+                        onChange={(e) => {
+                          clearField(name);
+                          formik.handleChange(e);
+                        }}
                         value={formik.values[name as keyof BudgetFormValues]}
                         readOnly={p2CalcReadOnly}
+                        style={errorStyle(invalidFields.includes(name))}
                         className={`w-full text-center bg-transparent outline-none border-b ${p2CalcReadOnly ? "border-transparent opacity-70 pointer-events-none" : "border-slate-400"}`}
                       />
                     </div>
@@ -1000,9 +1025,13 @@ const InputSheet = ({
                     <input
                       name="calc_p2_total5"
                       type="number"
-                      onChange={formik.handleChange}
+                      onChange={(e) => {
+                        clearField("calc_p2_total5");
+                        formik.handleChange(e);
+                      }}
                       value={formik.values.calc_p2_total5}
                       readOnly={p2CalcReadOnly}
+                      style={totalErrorStyle(invalidFields.includes("calc_p2_total5"))}
                       className={`flex-1 min-w-0 text-right bg-transparent outline-none border-b ${p2CalcReadOnly ? "border-transparent opacity-70 pointer-events-none text-white" : "border-white text-white"}`}
                     />
                   </div>

@@ -419,7 +419,7 @@ public class GameSessionService : IGameSessionService
         
     }
     
-    public async Task<bool> CheckPhaseInputsCalcsAsync(string roomCode, Guid playerId, DossierCheckRequest request) 
+    public async Task<DossierCheckResult> CheckPhaseInputsCalcsAsync(string roomCode, Guid playerId, DossierCheckRequest request) 
     {
         var room = await roomRepo.GetByRoomCodeAsync(roomCode);
         if (room == null) throw new ArgumentException("Room not found");
@@ -438,7 +438,7 @@ public class GameSessionService : IGameSessionService
 
         //TODO: just a quick way to go to nextphase rn
         var result = player.CheckCalculations(dossierData, investmentCalculator);
-        if (result && player.DossierState is FirstWorkphaseState) player.DossierState.NextPhase(player);
+        if (result.IsValid && player.DossierState is FirstWorkphaseState) player.DossierState.NextPhase(player);
         return result;
         
     }

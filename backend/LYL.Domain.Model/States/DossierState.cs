@@ -18,8 +18,8 @@ public abstract class DossierState
 
     public abstract DossierCheckResult CheckBalanceMonth(DossierData data);
     public abstract DossierCheckResult CheckTotalMonthly(DossierData data, Player player);
-    public abstract bool CheckCalculationPhase(DossierData data, Player player,  IInvestmentCalculator calculator);
+    public abstract DossierCheckResult CheckCalculationPhase(DossierData data, Player player,  IInvestmentCalculator calculator);
     public abstract void NextPhase(Player player);
-    public abstract bool CheckEventCardsInputAndTotal4(DossierData data, Player player);
+    public abstract DossierCheckResult CheckEventCardsInputAndTotal4(DossierData data, Player player);
     
 }

@@ -28,14 +28,6 @@ const CategoryItem = ({
       <h3>{t(category.titleKey)}</h3>
       <p>{t(category.descriptionKey)}</p>
 
-      {category.slotValues && (
-        <div className="slot-values">
-          {category.slotValues.map((val: number, i: number) => (
-            <span key={i}>€{val.toLocaleString()}</span>
-          ))}
-        </div>
-      )}
-
       <div className="checkbox-container">
         {[...Array(category.maxSlots)].map((_, index) => {
           const isChecked = index < totalChecked;

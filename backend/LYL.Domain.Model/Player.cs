@@ -44,7 +44,7 @@ public class Player
         return DossierState.CheckTotalMonthly(data, this);
     }
     
-    public bool CheckCalculations(DossierData data,  IInvestmentCalculator calculator)
+    public DossierCheckResult CheckCalculations(DossierData data,  IInvestmentCalculator calculator)
     {
         return DossierState.CheckCalculationPhase(data, this, calculator );
     }

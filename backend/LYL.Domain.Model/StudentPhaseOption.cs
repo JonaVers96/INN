@@ -10,6 +10,7 @@ public class StudentPhaseOption
     [JsonPropertyName("descriptionKey")] public string DescriptionKey { get; set; }
     [JsonPropertyName("preFilledSlots")] public int FilledSlots { get; set; }
     [JsonPropertyName("maxSlots")] public int MaxSlots { get; set; }
+    [JsonPropertyName("slotValues")] public List<decimal>? SlotValues { get; set; }
 
     public void FillSlot()
     {

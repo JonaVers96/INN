@@ -150,114 +150,128 @@ public class SecondWorkphaseState(Dossier dossier, IMemoryAccessService service)
         return netSalary - (children * childDeduction) < maxIncome;
     }
 
-    public override bool CheckCalculationPhase(DossierData data, Player player, IInvestmentCalculator calculator)
+    public override DossierCheckResult CheckCalculationPhase(DossierData data, Player player, IInvestmentCalculator calculator)
     {
-        bool resultCheck = true;
-        resultCheck &= CheckTotalMonthly(data, player).IsValid;
-        Console.WriteLine("begin test");
-        Console.WriteLine(resultCheck);
+        //Fouten uit de bovenste tabel worden mee teruggegeven zodat die ook gehighlight worden
+        var invalid = new List<string>(CheckTotalMonthly(data, player).InvalidFields);
+        void Check(bool ok, string field) { if (!ok) invalid.Add(field); }
 
         //Total career phase 1
-        resultCheck &= data.Total1Carry == Dossier.firstWorkphaseDossier.Total1;
-        Console.WriteLine(resultCheck);
+        Check(data.Total1Carry == Dossier.firstWorkphaseDossier.Total1, "calc_p2_total1_carry");
 
         //Support (parents) partner
-        resultCheck &= data.PartnerSavings.GetValueOrDefault() == Dossier.LivingSituation.Partner.Savings;
-        Console.WriteLine(resultCheck);
+        Check(data.PartnerSavings.GetValueOrDefault() == Dossier.LivingSituation.Partner.Savings, "calc_p2_partner_savings");
 
         //Total 2: startbudget career phase 2 (^total above)
-        resultCheck &= data.Total2 == data.Total1Carry + data.PartnerSavings.GetValueOrDefault();
-        Console.WriteLine(resultCheck);
+        Check(data.Total2 == data.Total1Carry + data.PartnerSavings.GetValueOrDefault(), "calc_p2_total2");
 
         //One-time purchase cost
         string? house_id = service.GetHouseId(data.HousingCost);
         if (house_id?.StartsWith("buy") == true)
         {
             decimal purchaseCost = service.GetHousePurchaseCost(house_id);
-            resultCheck &= data.HousingPurchaseCost == purchaseCost;
+            Check(data.HousingPurchaseCost == purchaseCost, "calc_p2_housing");
         }
-        else resultCheck &= data.HousingPurchaseCost.GetValueOrDefault() == 0;
-        Console.WriteLine(resultCheck);
+        else Check(data.HousingPurchaseCost.GetValueOrDefault() == 0, "calc_p2_housing");
 
         //Subtotal 3 / factor phase 2 = total 3
-        resultCheck &= data.Total3 == (data.Total2
-                                       - data.HousingPurchaseCost.GetValueOrDefault())/2;
+        Check(data.Total3 == (data.Total2
+                              - data.HousingPurchaseCost.GetValueOrDefault())/2, "calc_p2_total3");
         //TODO: factor?
-        Console.WriteLine(resultCheck);
-    
-        isChecked &= resultCheck;
+
+        //Remaining budget career phase 2: budget/maand x 12 maanden x 20 jaar
+        Check(data.CalcRemainingBudgetWholePhase2 == data.RemainingBudget * 12 * 20, "calc_p2_remaining");
+
+        isChecked &= invalid.Count == 0;
         if (player.DossierState is SecondWorkphaseState)
-                {
-                    Dossier.secondWorkphaseDossier = data;
-                }
-                else throw new Exception("Invalid state");
+        {
+            Dossier.secondWorkphaseDossier = data;
+        }
+        else throw new Exception("Invalid state");
 
         try
         {
-            var testresult = CheckEventCardsInputAndTotal4(data, player);
-            resultCheck &= testresult;
-            Console.WriteLine("cards: " + testresult);
+            invalid.AddRange(CheckEventCardsInputAndTotal4(data, player).InvalidFields);
         }
-        catch {
-            Console.WriteLine("foutje");
+        catch (Exception ex)
+        {
+            //Vroeger werd deze fout ingeslikt en werden de eventkaarten als correct beschouwd
+            Console.WriteLine($"Fout bij controleren eventkaarten: {ex.Message}");
+            invalid.AddRange(["calc_p2_event1", "calc_p2_event2", "calc_p2_event3", "calc_p2_total4"]);
         }
         
         //checks laatste velden onderste tabel
-        resultCheck &= CheckSavingsAccountCalc(data, player);
-        resultCheck &= CheckInvestmentCalc(data, player, calculator);
-        resultCheck &= CheckTotal5Calc(data, player);
+        invalid.AddRange(CheckSavingsAccountCalc(data));
+        invalid.AddRange(CheckInvestmentCalc(data, calculator));
+        Check(CheckTotal5Calc(data), "calc_p2_total5");
         
-        return resultCheck;
+        return new DossierCheckResult(invalid.Count == 0, invalid.Distinct().ToList());
     }
 
-    private bool CheckTotal5Calc(DossierData data, Player player)
+    private bool CheckTotal5Calc(DossierData data)
     {
-        //geen andere checks nodig: als een van deze hiervoor al fout was zal de algemenem bool false blijven!
-        var total5 = data.Total4 + data.ReturnSavings + data.ReturnInvestment - data.InflationImpact;
+        //gecontroleerd op de ingevulde waarden: als een van deze hiervoor al fout was, is dat veld al gehighlight
+        if (data.Total4 == null || data.ReturnSavings == null || data.ReturnInvestment == null ||
+            data.InflationImpact == null || data.Total5 == null) return false;
+
+        //inflatie mag positief of negatief ingevuld worden (zelfde als in CheckInvestmentCalc)
+        var total5 = data.Total4 + data.ReturnSavings + data.ReturnInvestment - AsAmount(data.InflationImpact);
         return total5 == data.Total5;
     }
 
-    private bool CheckSavingsAccountCalc(DossierData data, Player player)
+    private List<string> CheckSavingsAccountCalc(DossierData data)
     {
-        
         double interestRate = 0.01; //todo flexibel binnenhalen
         double years = 20;
-        if (data.SavingsAccount == null) return false;
+        double marge = 0.05;
+
+        if (data.SavingsAccount == null) return ["calc_p2_savings", "calc_p2_return_savings"];
+        if (data.ReturnSavings == null) return ["calc_p2_return_savings"];
+
         double principal = (double)data.SavingsAccount;
-    
-       
         double totalAmount = principal * Math.Pow(1 + interestRate, years);
         double profit = totalAmount - principal;
-        
-        double marge = 0.05; 
-        if (data.ReturnSavings == null) return false;
+
         var correct = Math.Abs(profit - (double)data.ReturnSavings) <= marge;
-    
-        return correct;
+        return correct ? [] : ["calc_p2_return_savings"];
     }
 
-    private bool CheckInvestmentCalc(DossierData data, Player player, IInvestmentCalculator calculator)
+    private List<string> CheckInvestmentCalc(DossierData data, IInvestmentCalculator calculator)
     {
         //TODO testen
-        var check = true;
+        var invalid = new List<string>();
         int years = 20;
         decimal rate = 0.06m; //todo flexibel binnenhalen
         decimal inflation = 0.02m;
-        decimal marge = 0.05m; 
-        
-        if (data.Investment == null) return false;
-        var returnment = calculator.CalculateReturn((decimal)data.Investment, rate, years );
-        check &= Math.Abs((decimal)(returnment - data.ReturnInvestment)) <= marge;
-        
-        if (data.Total3 == null) return false;
-        var inflationImpact = calculator.CalculateInflationImpact((decimal)data.Total3, inflation,  years );
-        
-        
-        if (data.InflationImpact == null) return false;
-        var inflImpactRobust = data.InflationImpact < 0 ? data.InflationImpact * -1 : data.InflationImpact; //check if user added - we have to correct this or it will always say false
-        check &= Math.Abs((decimal)(inflationImpact * (-1) - inflImpactRobust)) <= marge;
-        
-        return check;
+        decimal marge = 0.05m;
+
+        if (data.Investment == null)
+        {
+            invalid.Add("calc_p2_investment");
+            invalid.Add("calc_p2_return_investment");
+        }
+        else
+        {
+            var returnment = calculator.CalculateReturn((decimal)data.Investment, rate, years);
+            if (data.ReturnInvestment == null || Math.Abs(returnment - data.ReturnInvestment.Value) > marge)
+                invalid.Add("calc_p2_return_investment");
+        }
+
+        //Total3 null wordt al gehighlight via calc_p2_total3, inflatie kan dan niet berekend worden
+        if (data.Total3 == null || data.InflationImpact == null)
+        {
+            invalid.Add("calc_p2_inflation");
+        }
+        else
+        {
+            var inflationImpact = calculator.CalculateInflationImpact((decimal)data.Total3, inflation, years);
+            //check if user added - we have to correct this or it will always say false
+            var inflImpactRobust = AsAmount(data.InflationImpact).Value;
+            if (Math.Abs(inflationImpact * (-1) - inflImpactRobust) > marge)
+                invalid.Add("calc_p2_inflation");
+        }
+
+        return invalid;
     }
 
     public override void NextPhase(Player player)
@@ -267,11 +281,11 @@ public class SecondWorkphaseState(Dossier dossier, IMemoryAccessService service)
     }
     
     
-    public override bool CheckEventCardsInputAndTotal4(DossierData data, Player player)
+    public override DossierCheckResult CheckEventCardsInputAndTotal4(DossierData data, Player player)
     {
         //TODO testen!!!
         
-        bool result = true;
+        var invalid = new List<string>();
         decimal? totalImpactEventCards = 0;
         
         var eventcardsChoices = player.Dossier.ChoosenEventCards.Choices;
@@ -282,6 +296,8 @@ public class SecondWorkphaseState(Dossier dossier, IMemoryAccessService service)
 
         for (int i = 0; i < eventcardsChoices.Count; i++)
         {
+            //per kaart bijhouden of de ingevulde impact klopt, zodat het juiste event-veld gehighlight wordt
+            bool result = true;
             var id = eventcardsChoices[i].CardId;
             decimal? dataDecimal = i switch
             {
@@ -295,8 +311,8 @@ public class SecondWorkphaseState(Dossier dossier, IMemoryAccessService service)
             {
                 var card = allEventcards.Find(x => x.Id == "second_car");
                 if (card == null) throw new Exception("Card not found");
-                result &= card.Options[0].Amount == ((dataDecimal > 0) ? dataDecimal * (-1) : dataDecimal);
-                totalImpactEventCards -= (dataDecimal < 0) ? dataDecimal * (-1) : dataDecimal;
+                result &= card.Options[0].Amount == AsCost(dataDecimal);
+                totalImpactEventCards -= AsAmount(dataDecimal);
             }
 
             if (id == "divorce")
@@ -305,8 +321,8 @@ public class SecondWorkphaseState(Dossier dossier, IMemoryAccessService service)
                 if (card == null) throw new Exception("Card not found");
 
                 result &= player.Dossier.secondWorkphaseDossier.NetSalaryPartner ==
-                          ((dataDecimal < 0) ? dataDecimal * (-1) : dataDecimal);
-               totalImpactEventCards -= (dataDecimal < 0) ? dataDecimal * (-1) : dataDecimal;
+                          (AsAmount(dataDecimal));
+               totalImpactEventCards -= AsAmount(dataDecimal);
             }
 
             if (id == "car_accident_parked")
@@ -321,13 +337,13 @@ public class SecondWorkphaseState(Dossier dossier, IMemoryAccessService service)
                 if (choosenInsuranceDecimal is 25 or 50 )
                 {
                     //special check in case user writes negative or positive in frontend
-                     result &= card.Options[0].Amount == ((dataDecimal > 0) ? dataDecimal * (-1) : dataDecimal);
-                     totalImpactEventCards -= (dataDecimal < 0) ? dataDecimal * (-1) : dataDecimal;
+                     result &= card.Options[0].Amount == AsCost(dataDecimal);
+                     totalImpactEventCards -= AsAmount(dataDecimal);
                 }
                 else if (choosenInsuranceDecimal is 55 or 125)
                 {
-                    result &= card.Options[1].Amount == ((dataDecimal > 0) ? dataDecimal * (-1) : dataDecimal);
-                    totalImpactEventCards -= (dataDecimal < 0) ? dataDecimal * (-1) : dataDecimal;
+                    result &= card.Options[1].Amount == AsCost(dataDecimal);
+                    totalImpactEventCards -= AsAmount(dataDecimal);
                 }
                 else if (choosenInsuranceDecimal is 70 or 350)
                 {
@@ -353,8 +369,8 @@ public class SecondWorkphaseState(Dossier dossier, IMemoryAccessService service)
                 //check which insurance player has (normal || sportscar)
                 if (choosenInsuranceDecimal is 25 or 50 )
                 {
-                    result &= option.Amount == ((dataDecimal > 0) ? dataDecimal * (-1) : dataDecimal);
-                    totalImpactEventCards -= (dataDecimal < 0) ? dataDecimal * (-1) : dataDecimal;
+                    result &= option.Amount == AsCost(dataDecimal);
+                    totalImpactEventCards -= AsAmount(dataDecimal);
                 }
                 else if (choosenInsuranceDecimal is 55 or 125)
                 {
@@ -380,13 +396,13 @@ public class SecondWorkphaseState(Dossier dossier, IMemoryAccessService service)
                 //check which insurance player has (normal || sportscar)
                 if (choosenInsuranceDecimal is 25 or 50 )
                 {
-                    result &= options[0].Amount == ((dataDecimal > 0) ? dataDecimal * (-1) : dataDecimal);
-                    totalImpactEventCards -= (dataDecimal < 0) ? dataDecimal * (-1) : dataDecimal;
+                    result &= options[0].Amount == AsCost(dataDecimal);
+                    totalImpactEventCards -= AsAmount(dataDecimal);
                 }
                 else if (choosenInsuranceDecimal is 55 or 125)
                 {
-                    result &= options[1].Amount == ((dataDecimal > 0) ? dataDecimal * (-1) : dataDecimal);
-                    totalImpactEventCards -= (dataDecimal < 0) ? dataDecimal * (-1) : dataDecimal;
+                    result &= options[1].Amount == AsCost(dataDecimal);
+                    totalImpactEventCards -= AsAmount(dataDecimal);
                 }
                 else if (choosenInsuranceDecimal is 70 or 350)
                 {
@@ -429,8 +445,8 @@ public class SecondWorkphaseState(Dossier dossier, IMemoryAccessService service)
                 else
                 {
                     var option = card.Options.Find(x => x.ConditionId == "NO");
-                    result &= option.Amount == ((dataDecimal > 0) ? dataDecimal * (-1) : dataDecimal);
-                    totalImpactEventCards -= (dataDecimal < 0) ? dataDecimal * (-1) : dataDecimal;
+                    result &= option.Amount == AsCost(dataDecimal);
+                    totalImpactEventCards -= AsAmount(dataDecimal);
                 }
             }
 
@@ -446,8 +462,8 @@ public class SecondWorkphaseState(Dossier dossier, IMemoryAccessService service)
                 else
                 {
                     var option = card.Options.Find(x => x.ConditionId == "NO");
-                    result &= option.Amount == ((dataDecimal > 0) ? dataDecimal * (-1) : dataDecimal);
-                    totalImpactEventCards -= (dataDecimal < 0) ? dataDecimal * (-1) : dataDecimal;
+                    result &= option.Amount == AsCost(dataDecimal);
+                    totalImpactEventCards -= AsAmount(dataDecimal);
                 }
                 
             }
@@ -464,8 +480,8 @@ public class SecondWorkphaseState(Dossier dossier, IMemoryAccessService service)
                 else
                 {
                     var option = card.Options.Find(x => x.ConditionId == "NO");
-                    result &= option.Amount == ((dataDecimal > 0) ? dataDecimal * (-1) : dataDecimal);
-                    totalImpactEventCards -= (dataDecimal < 0) ? dataDecimal * (-1) : dataDecimal;
+                    result &= option.Amount == AsCost(dataDecimal);
+                    totalImpactEventCards -= AsAmount(dataDecimal);
                 }
             }
 
@@ -473,18 +489,18 @@ public class SecondWorkphaseState(Dossier dossier, IMemoryAccessService service)
             {
                 var card = allEventcards.Find(x => x.Id == "dismissal");
                 if (card == null) throw new Exception("Card not found");
-                var test = card.Options[1].Amount == ((dataDecimal > 0) ? dataDecimal * (-1) : dataDecimal);
+                var test = card.Options[1].Amount == AsCost(dataDecimal);
                 
                 var option = Dossier.Character.StudentPhase.Options.FirstOrDefault(x => x.Id == "education");
                 if (option != default)
                 {
                     var filled = option.FilledSlots;
-                    if (filled == 0) result &= card.Options[0].Amount == ((dataDecimal > 0) ? dataDecimal * (-1) : dataDecimal);
-                    if (filled == 1) result &= card.Options[1].Amount == ((dataDecimal > 0) ? dataDecimal * (-1) : dataDecimal);
-                    if (filled == 2) result &= card.Options[2].Amount == ((dataDecimal > 0) ? dataDecimal * (-1) : dataDecimal);
-                    if (filled == 3) result &= card.Options[3].Amount == ((dataDecimal > 0) ? dataDecimal * (-1) : dataDecimal);
+                    if (filled == 0) result &= card.Options[0].Amount == AsCost(dataDecimal);
+                    if (filled == 1) result &= card.Options[1].Amount == AsCost(dataDecimal);
+                    if (filled == 2) result &= card.Options[2].Amount == AsCost(dataDecimal);
+                    if (filled == 3) result &= card.Options[3].Amount == AsCost(dataDecimal);
                 }
-                totalImpactEventCards -= (dataDecimal < 0) ? dataDecimal * (-1) : dataDecimal;
+                totalImpactEventCards -= AsAmount(dataDecimal);
             }
 
             if (id == "promotion")
@@ -564,8 +580,8 @@ public class SecondWorkphaseState(Dossier dossier, IMemoryAccessService service)
                 if (player.Dossier.secondWorkphaseDossier.NetSalaryPartner > 0) amountOfpp += 1; //TODO beter checken na update sarah partner
                 if (player.Dossier.LivingSituation.Children > 0) amountOfpp += player.Dossier.LivingSituation.Children; 
                 //TODO nog aanpassen aan logica sarah
-                result &= (option.Amount * amountOfpp)  == ((dataDecimal > 0) ? dataDecimal * (-1) : dataDecimal);
-                totalImpactEventCards -= (dataDecimal < 0) ? dataDecimal * (-1) : dataDecimal;
+                result &= (option.Amount * amountOfpp)  == AsCost(dataDecimal);
+                totalImpactEventCards -= AsAmount(dataDecimal);
             }
 
             if (id == "leaking_roof")
@@ -580,8 +596,8 @@ public class SecondWorkphaseState(Dossier dossier, IMemoryAccessService service)
                 
                 if (!rentsHouse) 
                 {
-                    result &= (card.Options.Find(x => x.ConditionId == "owner")).Amount ==  ((dataDecimal > 0) ? dataDecimal * (-1) : dataDecimal);
-                    totalImpactEventCards -= (dataDecimal < 0) ? dataDecimal * (-1) : dataDecimal;
+                    result &= (card.Options.Find(x => x.ConditionId == "owner")).Amount ==  AsCost(dataDecimal);
+                    totalImpactEventCards -= AsAmount(dataDecimal);
                 }
                 else
                 {
@@ -595,8 +611,8 @@ public class SecondWorkphaseState(Dossier dossier, IMemoryAccessService service)
                 if (card == null) throw new Exception("Card not found");
                 
                 var option = card.Options.Find(x => x.ConditionId == eventcardsChoices[i].ConditionId);
-                result &= option.Amount == ((dataDecimal > 0) ? dataDecimal * (-1) : dataDecimal);
-                totalImpactEventCards -= (dataDecimal < 0) ? dataDecimal * (-1) : dataDecimal;
+                result &= option.Amount == AsCost(dataDecimal);
+                totalImpactEventCards -= AsAmount(dataDecimal);
             }
 
             if (id == "hospital_treatment")
@@ -610,8 +626,8 @@ public class SecondWorkphaseState(Dossier dossier, IMemoryAccessService service)
                 }
                 else //no insurance
                 {
-                    result &= (card.Options.Find(x => x.ConditionId == "NO")).Amount ==  ((dataDecimal > 0) ? dataDecimal * (-1) : dataDecimal);
-                    totalImpactEventCards -= (dataDecimal < 0) ? dataDecimal * (-1) : dataDecimal;
+                    result &= (card.Options.Find(x => x.ConditionId == "NO")).Amount ==  AsCost(dataDecimal);
+                    totalImpactEventCards -= AsAmount(dataDecimal);
                 }
             }
 
@@ -621,8 +637,8 @@ public class SecondWorkphaseState(Dossier dossier, IMemoryAccessService service)
                 if (card == null) throw new Exception("Card not found");
                 
                 var option = card.Options.Find(x => x.ConditionId == eventcardsChoices[i].ConditionId);
-                result &= option.Amount == ((dataDecimal > 0) ? dataDecimal * (-1) : dataDecimal);
-                totalImpactEventCards -= (dataDecimal < 0) ? dataDecimal * (-1) : dataDecimal;
+                result &= option.Amount == AsCost(dataDecimal);
+                totalImpactEventCards -= AsAmount(dataDecimal);
             }
 
             if (id == "housing_costs_2")
@@ -631,8 +647,8 @@ public class SecondWorkphaseState(Dossier dossier, IMemoryAccessService service)
                 if (card == null) throw new Exception("Card not found");
                 
                 var option = card.Options.Find(x => x.ConditionId == eventcardsChoices[i].ConditionId);
-                result &= option.Amount == ((dataDecimal > 0) ? dataDecimal * (-1) : dataDecimal);
-                totalImpactEventCards -= (dataDecimal < 0) ? dataDecimal * (-1) : dataDecimal;
+                result &= option.Amount == AsCost(dataDecimal);
+                totalImpactEventCards -= AsAmount(dataDecimal);
             }
 
             if (id == "depression")
@@ -641,15 +657,24 @@ public class SecondWorkphaseState(Dossier dossier, IMemoryAccessService service)
                 if (card == null) throw new Exception("Card not found");
                 
                 var option = card.Options.Find(x => x.ConditionId == eventcardsChoices[i].ConditionId);
-                result &= option.Amount == ((dataDecimal > 0) ? dataDecimal * (-1) : dataDecimal);
-                totalImpactEventCards -= (dataDecimal < 0) ? dataDecimal * (-1) : dataDecimal;
+                result &= option.Amount == AsCost(dataDecimal);
+                totalImpactEventCards -= AsAmount(dataDecimal);
             }
+
+            if (!result) invalid.Add($"calc_p2_event{i + 1}");
         }
         
-        //TOTAL 3 + ((netsalary * 240)/2) - eventcards
-        var total4 = data.Total3 + ((data.RemainingBudget * 240)) + totalImpactEventCards;
-        result &= total4 == data.Total4;
+        //TOTAL 3 + resterend budget tweede werkfase (calc_p2_remaining) - eventcards
+        //gecontroleerd op de ingevulde waarde: een fout resterend budget wordt al gehighlight via calc_p2_remaining
+        var total4 = data.Total3 + data.CalcRemainingBudgetWholePhase2 + totalImpactEventCards;
+        if (total4 != data.Total4) invalid.Add("calc_p2_total4");
         
-        return result;
+        return new DossierCheckResult(invalid.Count == 0, invalid);
     }
+
+    //Kosten worden als negatief bedrag verwacht, ongeacht of de speler een - typt of niet
+    private static decimal? AsCost(decimal? value) => value > 0 ? -value : value;
+
+    //Absolute waarde van de ingevulde impact
+    private static decimal? AsAmount(decimal? value) => value < 0 ? -value : value;
 }

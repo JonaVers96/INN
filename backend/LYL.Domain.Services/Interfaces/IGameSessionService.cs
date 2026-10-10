@@ -22,7 +22,7 @@ public interface IGameSessionService
     Task<string> CompleteStudentPhaseAsync(string roomCode, Guid playerId, CompleteStudentPhaseRequest request);
     Task<string> CompleteFirstWorkPhaseAsync(string roomCode, Guid playerId);
     Task<DossierCheckResult> CheckPhaseInputsMonthlyAsync(string roomCode, Guid playerId, DossierCheckRequest request); //TODO aanpassen naa request
-    Task<bool> CheckPhaseInputsCalcsAsync(string roomCode, Guid playerId, DossierCheckRequest request);
+    Task<DossierCheckResult> CheckPhaseInputsCalcsAsync(string roomCode, Guid playerId, DossierCheckRequest request);
     Task CloseRoomAsync(string roomCode);
     Task<Dictionary<int, List<EventCard>>> GetEventCards();
     Task SaveEventCardsInput(string roomId, string playerId, EventCardSaveRequestContract request);

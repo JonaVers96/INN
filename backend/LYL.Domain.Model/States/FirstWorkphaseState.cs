@@ -20,7 +20,7 @@ public class FirstWorkphaseState(Dossier dossier, IMemoryAccessService service) 
 
         //Housing (rent): price exists: int => house_id (house_id opslaan in string)
         string? house_id = service.GetHouseId(data.HousingCost);
-        Check(!string.IsNullOrWhiteSpace(house_id), "monthhly_rent_phase1");
+        Check(!string.IsNullOrWhiteSpace(house_id), "monthly_rent_phase1");
 
         //Get social housing condition if necessary
         if (house_id == "rent_social") Check(CheckSocialHousingCondition(), "net_salary_phase1"  );
@@ -108,53 +108,41 @@ public class FirstWorkphaseState(Dossier dossier, IMemoryAccessService service) 
     return new DossierCheckResult(true, invalid);
 }
 
-    public override bool CheckCalculationPhase(DossierData data, Player player,  IInvestmentCalculator calculator)
+    public override DossierCheckResult CheckCalculationPhase(DossierData data, Player player,  IInvestmentCalculator calculator)
     {
-        bool resultCheck = true;
+        //Fouten uit de bovenste tabel worden mee teruggegeven zodat die ook gehighlight worden
+        var invalid = new List<string>(CheckTotalMonthly(data, player).InvalidFields);
+        void Check(bool ok, string field) { if (!ok) invalid.Add(field); }
 
         //Remaining budget calculation
-        resultCheck &= CheckTotalMonthly(data, player).IsValid;
-        resultCheck &= data.CalcRemainingBudgetWholePhase1 ==
-                       data.RemainingBudget * Dossier.Character.Profile.ExperienceInMonths;
+        Check(data.CalcRemainingBudgetWholePhase1 ==
+              data.RemainingBudget * Dossier.Character.Profile.ExperienceInMonths, "calc_p1_remaining");
 
-        //Revenue student job (can be zero/null)
+        //Revenue student job (can be zero/null): som van de waarden van de aangeduide slots (slotValues in de fiche)
         var option = Dossier.Character.StudentPhase.Options.FirstOrDefault(x => x.Id == "job_save");
-        if (option != default)
-        {
-            resultCheck &=
-                data.StudentJobIncome.GetValueOrDefault() ==
-                option.FilledSlots * 5000; //TODO van waar krijg ik die 5000?
-        }
-        else
-        {
-            resultCheck &= data.StudentJobIncome == 0 || data.StudentJobIncome == null;
-        }
-
+        decimal studentJobIncome = option?.SlotValues?.Take(option.FilledSlots).Sum() ?? 0m;
+        Check(data.StudentJobIncome.GetValueOrDefault() == studentJobIncome, "calc_p1_student");
 
         //Financial support parents
         //TODO: Rik-problem
-        resultCheck &= data.ParentalSupport.GetValueOrDefault() ==
-                       ParseParentalSupport(Dossier.Character.Profile.ParentalSupportKey);
+        Check(data.ParentalSupport.GetValueOrDefault() ==
+              ParseParentalSupport(Dossier.Character.Profile.ParentalSupportKey), "calc_p1_parental");
 
+        //Factor: gecontroleerd op de ingevulde waarden, zodat enkel de foute stap gehighlight wordt
+        Check(data.Factor == (data.CalcRemainingBudgetWholePhase1
+                              + data.StudentJobIncome.GetValueOrDefault()) / 2, "calc_p1_factor");
 
-        //Factor
-        resultCheck &= data.Factor == (data.CalcRemainingBudgetWholePhase1
-                                       + data.StudentJobIncome.GetValueOrDefault())
-            / 2;
+        //Total (ParentalSupport kan null zijn, anders is het totaal altijd fout)
+        Check(data.Total1 == data.Factor + data.ParentalSupport.GetValueOrDefault(), "calc_p1_total1");
 
-        //Total
-        resultCheck &= data.Total1 ==
-                       (data.Factor
-                        + data.ParentalSupport);
-
-        isChecked &= resultCheck;
+        isChecked &= invalid.Count == 0;
         if (player.DossierState is FirstWorkphaseState)
         {
             Dossier.firstWorkphaseDossier = data;
         }
         else throw new Exception("Invalid state");
 
-        return resultCheck;
+        return new DossierCheckResult(invalid.Count == 0, invalid.Distinct().ToList());
     }
 
     public override void NextPhase(Player player)
@@ -169,9 +157,9 @@ public class FirstWorkphaseState(Dossier dossier, IMemoryAccessService service) 
         }
     }
 
-    public override bool CheckEventCardsInputAndTotal4(DossierData data, Player player)
+    public override DossierCheckResult CheckEventCardsInputAndTotal4(DossierData data, Player player)
     {
-        return true; // moet niet geimplementeerd worden hier!
+        return new DossierCheckResult(true, []); // moet niet geimplementeerd worden hier!
     }
 
     public decimal ParseParentalSupport(string parentalSupport)

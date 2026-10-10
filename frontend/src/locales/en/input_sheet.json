@@ -22,7 +22,7 @@
   "expenses_label": "Expenses",
   "calculation_phase1": "Career phase 1: 20-30 years",
   "calculation": "Calculation",
-  "remaining_budget_phase1": "Budget balance after 1 month",
+  "remaining_budget_phase1": "Budget balance after phase 1",
   "remaining_budget_phase1_sub": "(Budget/month x # months of work experience first career phase)",
   "student_job_income": "Revenues student job (goal: save)",
   "student_job_income_sub": "(Student phase, max €15.000,00)",

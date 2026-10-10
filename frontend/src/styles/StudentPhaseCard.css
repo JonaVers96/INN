@@ -110,21 +110,6 @@
   color: #a4c478;
 }
 
-/*Bedragen boven de bollen*/
-.slot-values {
-  display: flex;
-  justify-content: center;
-  gap: 15px;
-  margin-bottom: 5px;
-  font-size: 12px;
-  font-weight: bold;
-}
-
-.slot-values span {
-  width: 35px;
-  text-align: center;
-}
-
 /*  De Volgende Knop  */
 .action-footer {
   display: flex;
