@@ -7,7 +7,7 @@ public class GameRoom
         Host = host;
         RoomCode = roomCode;
         
-        for (int i = 1; i <= 4; i++)
+        for (int i = 1; i <= 5; i++) //changed to five tables to get the demo able to accomodate 25 students
         {
             Tables.Add(new Table { TableNumber = i });
         }
