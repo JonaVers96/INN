@@ -128,7 +128,7 @@ interface TableGridProps {
 }
 
 const TableGrid: React.FC<TableGridProps> = ({ players }) => {
-  const maxTable = Math.max(4, ...players.map((p) => p.tableNumber));
+  const maxTable = Math.max(5, ...players.map((p) => p.tableNumber));
   const tables = Array.from({ length: maxTable }, (_, i) => i + 1);
 
   return (
