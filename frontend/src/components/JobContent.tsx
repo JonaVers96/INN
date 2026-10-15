@@ -1,60 +1,53 @@
-import { Wheel } from "react-custom-roulette";
-import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
-import mockJobData from "../assets/mockJobData.json";
+import JobWheel from "./JobWheel";
 import ResultPane from "./ResultPane";
-import type { Job } from "../types/jobTypes";
+import { buildJobs } from "../utils/buildJobs";
+import { useJobWheel } from "../hooks/useJobWheel";
 import "../styles/General.css";
 
+// The possible jobs are static mock data, so we build them once
+// when the file loads instead of on every render.
+const jobs = buildJobs();
+
+/**
+ * Page that shows a wheel with the possible jobs.
+ * The player spins the wheel and the selected job opens in a result pane.
+ */
 const JobPage = () => {
   const { t } = useTranslation();
 
-  // Importing possible jobs
-  const jobs = [mockJobData[0].job1, mockJobData[0].job2, mockJobData[0].job3];
+  // All spin and result-pane logic lives in this hook:
+  // mustSpin / prizeIndex -> control the wheel
+  // selectedJob / showPane -> control the result pane
+  // spin / handleStop / close -> actions triggered by the UI
+  const wheel = useJobWheel(jobs);
 
-  // Names segments
-  const data = jobs.map((job) => ({
-    option: t(job.nameKey),
-  }));
-
-  const [mustSpin, setMustSpin] = useState(false);
-  const [prizeIndex, setPrizeIndex] = useState(0);
-  const [selectedJob, setSelectedJob] = useState<Job | null>(null);
-  const [showPane, setShowPane] = useState(false);
-
-  //For this mock example, we want job2
-  const spinToJob2 = () => {
-    setPrizeIndex(1); // force second job
-    setMustSpin(true);
-  };
+  // Wheel segments: one translated job name per segment
+  const data = jobs.map((job) => ({ option: t(job.nameKey) }));
 
   return (
     <div className="job-page-container">
       <h1 className="h1">{t("profile_labels.possible_jobs")}</h1>
-      <Wheel
-        mustStartSpinning={mustSpin}
-        prizeNumber={prizeIndex}
-        data={data}
-        backgroundColors={["#f9bc2f", "#f08666", "#11b0a5"]}
-        textColors={["#000000"]}
-        perpendicularText={true}
-        onStopSpinning={() => {
-          setMustSpin(false);
 
-          const job = jobs[prizeIndex];
-          setSelectedJob(job);
-          setShowPane(true);
-        }}
+      {/* The wheel itself. handleStop runs when it stops spinning
+          and opens the result pane for the winning job. */}
+      <JobWheel
+        data={data}
+        mustSpin={wheel.mustSpin}
+        prizeIndex={wheel.prizeIndex}
+        onStop={wheel.handleStop}
       />
 
-      <button className="button" onClick={spinToJob2}>
+      {/* Starts the spin. In this mock version it always lands on job 2. */}
+      <button className="button" onClick={wheel.spin}>
         Spin
       </button>
 
+      {/* Shows the details of the selected job once the wheel has stopped */}
       <ResultPane
-        job={selectedJob}
-        isOpen={showPane}
-        onClose={() => setShowPane(false)}
+        job={wheel.selectedJob}
+        isOpen={wheel.showPane}
+        onClose={wheel.close}
         t={t}
       />
     </div>
