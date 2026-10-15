@@ -48,7 +48,7 @@ services:
     build:
       context: ./frontend
       args:
-        VITE_API_BASE_URL: http://cigritdev.fortiddns.com:21002
+        VITE_API_BASE_URL: http://localhost:5187
     ports:
       - "8888:8080"
     depends_on:
