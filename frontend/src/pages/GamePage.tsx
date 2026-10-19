@@ -125,35 +125,35 @@ const GamePage = () => {
           )}
           <button
             onClick={() => setActiveDossier("huisvesting")}
-            title="Huisvesting"
+            title="Housing"
             className={`hover:scale-130 transition-transform hover:opacity-80 ${activeDossier === "huisvesting" ? "opacity-100" : "opacity-40"}`}
           >
             <img src="/huisvestiging.svg" alt="" className="w-8 h-8" />
           </button>
           <button
             onClick={() => setActiveDossier("leefkosten")}
-            title="Leefkosten"
+            title="Expenses"
             className={`hover:scale-130 transition-transform hover:opacity-80 ${activeDossier === "leefkosten" ? "opacity-100" : "opacity-40"}`}
           >
             <img src="/leefkosten.svg" alt="" className="w-8 h-8" />
           </button>
           <button
             onClick={() => setActiveDossier("mobiliteit")}
-            title="Mobiliteit"
+            title="Mobility"
             className={`hover:scale-130 transition-transform hover:opacity-80 ${activeDossier === "mobiliteit" ? "opacity-100" : "opacity-40"}`}
           >
             <img src="/mobiliteit.svg" alt="" className="w-8 h-8" />
           </button>
           <button
             onClick={() => setActiveDossier("verzekeringen")}
-            title="Verzekeringen"
+            title="Insurances"
             className={`hover:scale-130 transition-transform hover:opacity-80 ${activeDossier === "verzekeringen" ? "opacity-100" : "opacity-40"}`}
           >
             <img src="/verzekering.svg" alt="" className="w-8 h-8" />
           </button>
           <button
             onClick={() => setActiveDossier("sparenenbeleggen")}
-            title="Sparen & Beleggen"
+            title="Savings & Investments"
             className={`hover:scale-130 transition-transform hover:opacity-80 ${activeDossier === "sparenenbeleggen" ? "opacity-100" : "opacity-40"}`}
           >
             <img src="/sparenenbeleggen.svg" alt="" className="w-8 h-8" />

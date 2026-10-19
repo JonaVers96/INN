@@ -132,7 +132,7 @@
   "general_insurance": {
     "title": "Insurances",
     "labels": {
-      "cost": "Cost per month",
+      "costs": "Cost per month",
       "franchise": "Franchise",
       "info": "Info",
       "coverage": "Coverage"
