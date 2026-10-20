@@ -15,6 +15,7 @@ public interface IGameSessionService
     Task<LeaveTableResponse> LeaveTableAsync(LeaveTableRequest request);
     Task SetRoomActiveAsync(string roomCode, bool isActive);
 
+    Task<AddTableResponse> AddTableAsync(string roomCode);
     Task<RoomStateResponse?> GetRoomStateAsync(string roomCode);
 
     //TODO Don't return model here! This was quick and dirty testing!
