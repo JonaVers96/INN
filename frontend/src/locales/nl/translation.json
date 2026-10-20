@@ -211,7 +211,9 @@
     "pin_submit": "BEVESTIGEN",
     "pin_invalid": "Onjuiste PIN. Probeer opnieuw.",
     "pin_error_generic": "Er ging iets mis. Probeer opnieuw.",
-    "close_room_button" : "Kamer sluiten"
+    "close_room_button" : "Kamer sluiten",
+    "add_table_button": "Tafel toevoegen",
+    "adding_table": "Tafel toevoegen..."
   },
   "phases": {
     "offline": "Offline",

@@ -125,11 +125,12 @@ const TableCard: React.FC<{ tableNum: number; players: Player[] }> = ({
 
 interface TableGridProps {
   players: Player[];
+  tableCount: number;
 }
 
-const TableGrid: React.FC<TableGridProps> = ({ players }) => {
-  const maxTable = Math.max(4, ...players.map((p) => p.tableNumber));
-  const tables = Array.from({ length: maxTable }, (_, i) => i + 1);
+const TableGrid: React.FC<TableGridProps> = ({ players, tableCount }) => {
+  
+  const tables = Array.from({ length: tableCount }, (_, i) => i + 1);
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
