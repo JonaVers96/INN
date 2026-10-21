@@ -1,12 +1,11 @@
-import React, { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import {
   HubConnection,
   HubConnectionState,
   HubConnectionBuilder,
   LogLevel,
 } from "@microsoft/signalr";
-
-export const SignalRContext = React.createContext<HubConnection | null>(null);
+import { SignalRContext } from "./SignalRContext";
 
 export const SignalRProvider = ({ children }: { children: ReactNode }) => {
   const [connection] = useState<HubConnection>(() => {
