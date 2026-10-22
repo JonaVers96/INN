@@ -16,8 +16,8 @@ public class Table
     private readonly List<Player> players = new();
     
     public IReadOnlyList<Player> Players => players.AsReadOnly();
-    public bool IsFull => players.Count >= 5;
-    public List<Character> Characters { get; set; } = new();
+    public const int MaxPlayers = 5;
+    public bool IsFull => players.Count >= MaxPlayers; public List<Character> Characters { get; set; } = new();
 
     public bool TryAddPlayer(Player player)
     {

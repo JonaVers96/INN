@@ -210,7 +210,9 @@
     "pin_submit": "CONFIRMER",
     "pin_invalid": "PIN incorrect. Veuillez réessayer.",
     "pin_error_generic": "Une erreur s'est produite. Veuillez réessayer.",
-    "close_room_button" : "fermer la pièce"
+    "close_room_button" : "fermer la pièce",
+    "add_table_button": "Ajouter une table",
+    "adding_table": "Ajout de la table..."
   },
   "phases": {
     "offline": "Hors ligne",

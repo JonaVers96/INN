@@ -56,7 +56,8 @@ public class GameSessionService : IGameSessionService
 
         return new CreateRoomResponse
         {
-            RoomCode = room.RoomCode
+            RoomCode = room.RoomCode,
+            TableCount = room.Tables.Count
         };
     }
 
@@ -175,6 +176,28 @@ public class GameSessionService : IGameSessionService
         await roomRepo.UpdateAsync(room);
     }
 
+        public async Task<AddTableResponse> AddTableAsync(string roomCode)
+    {
+        var room = await roomRepo.GetByRoomCodeAsync(roomCode);
+        if (room == null) throw new ArgumentException("Room not found");
+
+        // Characters worden normaal pas bij de spelstart uitgedeeld (SetRoomActiveAsync).
+        // Is het spel al bezig, dan moet de nieuwe tafel ze nu meteen krijgen: anders vindt een
+        // laatkomer geen vrij character ("No characters left at this table").
+        // Per tafel een eigen kopie opvragen, zodat tafels geen Character-objecten delen.
+        var characters = room.IsActive ? jsonSerializer.getCharacters() : new List<Character>();
+
+        var table = room.AddTable(characters);
+
+        await roomRepo.UpdateAsync(room);
+
+        return new AddTableResponse
+        {
+            TableNumber = table.TableNumber,
+            TableCount = room.Tables.Count
+        };
+    }
+
     //TODO Use mapping? 
     public async Task<RoomStateResponse?> GetRoomStateAsync(string roomCode)
     {
@@ -186,6 +209,7 @@ public class GameSessionService : IGameSessionService
         {
             RoomCode = room.RoomCode,
             IsActive = room.IsActive,
+            TableCount = room.Tables.Count,
             Players = new List<PlayerStateDto>()
         };
 

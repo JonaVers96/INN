@@ -6,6 +6,8 @@ public class RoomStateResponse
 {
     public string RoomCode { get; set; }
     public bool IsActive { get; set; }
+
+    public int TableCount { get; set; }
     public List<PlayerStateDto> Players { get; set; } = new();
 }
 

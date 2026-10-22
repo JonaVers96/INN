@@ -210,7 +210,9 @@
     "pin_submit": "CONFIRM",
     "pin_invalid": "Incorrect PIN. Please try again.",
     "pin_error_generic": "Something went wrong. Please try again.",
-     "close_room_button" : "close room"
+    "close_room_button" : "close room",
+    "add_table_button": "Add table",
+    "adding_table": "Adding table..."
   },
   "phases": {
     "offline": "Offline",
