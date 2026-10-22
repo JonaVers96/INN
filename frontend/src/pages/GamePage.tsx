@@ -1,4 +1,3 @@
-import React from "react";
 import CharacterProfileCard from "../components/CharacterProfileCard";
 import HousingContent from "../components/dossier/HousingContent";
 import LivingCostsContent from "../components/dossier/LivingCostsContent";
@@ -22,11 +21,11 @@ const GamePage = () => {
   const { character } = useCharacter();
   const { t } = useTranslation(["input_sheet", "eventData"]);
 
-  const [activeDossier, setActiveDossier] = React.useState<string | null>(null);
-  const [isProfileOpen, setIsProfileOpen] = React.useState(false);
+  const [activeDossier, setActiveDossier] = useState<string | null>(null);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [rightWidth, setRightWidth] = useState(400);
   const [isDragging, setIsDragging] = useState(false);
-  const [isStudentPhaseOpen, setIsStudentPhaseOpen] = React.useState(false);
+  const [isStudentPhaseOpen, setIsStudentPhaseOpen] = useState(false);
   const [isLivingSituationOpen, setIsLivingSituationOpen] = useState(false);
   const [showEventCards, setShowEventCards] = useState(false);
   const [eventPhase, setEventPhase] = useState<
@@ -418,7 +417,7 @@ const GamePage = () => {
                         <EventCardDisplay
                           card={selectedCard}
                           mode="confirm"
-                          onConfirm={(cardId, conditionId) => {
+                          onConfirm={(_cardId, conditionId) => {
                             setChosenCards((prev) => [
                               ...prev,
                               { card: selectedCard, conditionId },

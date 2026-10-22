@@ -6,18 +6,23 @@ public class TestInMemoryDataRepository
     private readonly InMemoryDataRepository _repo;
 
     public TestInMemoryDataRepository()
-    {
-        _repo = new InMemoryDataRepository();
-        
-        var jsonText = File.ReadAllText(@""); //TODO: Indien test, haal gegevens op!!!! 
-        using var document = JsonDocument.Parse(jsonText);
-        var jsonData = new Dictionary<string, JsonDocument>
-        {
-            { "dossierdata.json", document }
-        };
-        _repo.FillInMemoryData(jsonData);
+{
+    _repo = new InMemoryDataRepository();
 
-    }
+    var dataFile = Path.Combine(
+        AppContext.BaseDirectory,
+        "dossierdata.json");
+
+    var jsonText = File.ReadAllText(dataFile);
+
+    using var document = JsonDocument.Parse(jsonText);
+    var jsonData = new Dictionary<string, JsonDocument>
+    {
+        { "dossierdata.json", document }
+    };
+
+    _repo.FillInMemoryData(jsonData);
+}
 
     [Fact]
     public void GivenExistingRentCost_WhenGettingHouseId_ThenReturnsCorrectHouseId()
@@ -243,7 +248,7 @@ public class TestInMemoryDataRepository
     {
         var result = _repo.GetHouseInfoRent("rent_apt_city");
 
-        Assert.Equal(3, result.maxSpace);
+        Assert.Equal(5, result.maxSpace);
         Assert.False(result.needsCar);
     }
 

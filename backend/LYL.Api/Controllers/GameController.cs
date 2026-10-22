@@ -33,6 +33,15 @@ public class GameController(IGameSessionService gameSessionService, IHubContext<
         return Ok(new { message = "Het spel is succesvol gestart!" });
     }
 
+    [HttpPost("{roomCode}/tables")]
+    public async Task<ActionResult<AddTableResponse>> AddTable(string roomCode)
+    {
+        var response = await gameSessionService.AddTableAsync(roomCode);
+        return Ok(response);
+    }
+
+
+
     [HttpGet("{roomCode}")]
     public async Task<ActionResult<RoomStateResponse>> GetRoomState(string roomCode)
     {

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import axios from "axios";
 import { useSignalR } from "../hooks/useSignalR";
@@ -15,6 +15,8 @@ const SupervisorPage = () => {
   const [isStarting, setIsStarting] = useState(false);
   const [isGameStarted, setIsGameStarted] = useState(false);
   const [isClosing, setIsClosing] = useState(false);
+  const [tableCount, setTableCount] = useState(0);
+  const [isAddingTable, setIsAddingTable] = useState(false);
 
   useEffect(() => {
     const restoreSession = async () => {
@@ -31,6 +33,7 @@ const SupervisorPage = () => {
           setRoomCode(roomState.roomCode);
           setIsGameStarted(roomState.isActive);
           setPlayers(roomState.players);
+          setTableCount(roomState.tableCount);
 
           if (connection) {
             if (connection.state === "Connected") {
@@ -136,6 +139,7 @@ const SupervisorPage = () => {
       const code = response.data.roomCode;
 
       setRoomCode(code);
+      setTableCount(response.data.tableCount);
       // Sla code op voor bij browser refresh
       localStorage.setItem("supervisorRoomCode", code);
 
@@ -191,6 +195,22 @@ const SupervisorPage = () => {
       console.error("Fout bij het starten van de kamer:", error);
     } finally {
       setIsStarting(false);
+    }
+  };
+
+    const handleAddTable = async () => {
+    if (!roomCode || isAddingTable) return;
+
+    setIsAddingTable(true);
+    try {
+      const response = await axios.post(
+        `${import.meta.env.VITE_API_BASE_URL}/api/game/${roomCode}/tables`,
+      );
+      setTableCount(response.data.tableCount);
+    } catch (error) {
+      console.error("Fout bij het toevoegen van een tafel:", error);
+    } finally {
+      setIsAddingTable(false);
     }
   };
 
@@ -257,6 +277,16 @@ const SupervisorPage = () => {
             )}
 
             <button
+              onClick={handleAddTable}
+              disabled={isAddingTable}
+              className="font-extrabold py-3 px-8 rounded-full border-2 border-teal-300 text-teal-600 hover:bg-teal-500 hover:text-white hover:border-teal-500 transition-all duration-200 text-sm uppercase tracking-wider disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isAddingTable
+                ? t("supervisor_page.adding_table", "Tafel toevoegen...")
+                : t("supervisor_page.add_table_button", "Tafel toevoegen")}
+            </button>
+
+            <button
               onClick={handleCloseRoom}
               disabled={isClosing}
               className="font-extrabold py-3 px-8 rounded-full border-2 border-rose-300 text-rose-500 hover:bg-rose-500 hover:text-white hover:border-rose-500 transition-all duration-200 text-sm uppercase tracking-wider disabled:opacity-50 disabled:cursor-not-allowed"
@@ -265,13 +295,15 @@ const SupervisorPage = () => {
                 ? t("supervisor_page.closing", "Sluiten...")
                 : t("supervisor_page.close_room_button", "Kamer sluiten")}
             </button>
+
+                        
           </div>
         )}
       </div>
 
       {roomCode && (
         <div className="max-w-[90rem] mx-auto">
-          <TableGrid players={players} />
+                    <TableGrid players={players} tableCount={tableCount} />
         </div>
       )}
     </div>

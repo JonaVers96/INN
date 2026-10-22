@@ -2,7 +2,7 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import "./index.css";
 import App from "./App.tsx";
-import { SignalRProvider } from "./contexts/SignalRContext";
+import { SignalRProvider } from "./contexts/SignalRProvider";
 import "./i18n";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import SupervisorPage from "./pages/SupervisorPage.tsx";

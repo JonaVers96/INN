@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useCharacter } from "../hooks/useCharacter.tsx";
@@ -83,7 +83,7 @@ const CharacterDiscoveryPage = () => {
                 {profile?.nameKey ? t(profile.nameKey) : "?"}
               </h3>
 
-              <div className="w-16 h-16 rounded-full border-2 border-teal-100 shadow-sm overflow-hidden flex-shrink-0 my-2 bg-slate-50">
+              <div className="w-16 h-16 rounded-full border-2 border-teal-100 shadow-sm overflow-hidden shrink-0 my-2 bg-slate-50">
                 <img
                   src={img_url}
                   alt="Character"
@@ -92,7 +92,7 @@ const CharacterDiscoveryPage = () => {
               </div>
 
               {profile?.age && (
-                <div className="bg-amber-100 text-amber-800 text-xs font-extrabold px-3 py-1 rounded-full shadow-inner border border-amber-200 flex-shrink-0">
+                <div className="bg-amber-100 text-amber-800 text-xs font-extrabold px-3 py-1 rounded-full shadow-inner border border-amber-200 shrink-0">
                   {profile.age} {t("profile_labels.years", "jaar")}
                 </div>
               )}
