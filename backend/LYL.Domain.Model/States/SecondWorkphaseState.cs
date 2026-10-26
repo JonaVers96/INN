@@ -677,4 +677,10 @@ public class SecondWorkphaseState(Dossier dossier, IMemoryAccessService service)
 
     //Absolute waarde van de ingevulde impact
     private static decimal? AsAmount(decimal? value) => value < 0 ? -value : value;
+
+    public override void AcceptWithoutCheck(DossierData data)
+    {
+        Dossier.secondWorkphaseDossier = data;
+        isChecked = true;
+    }
 }
