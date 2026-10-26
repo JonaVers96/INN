@@ -10,7 +10,7 @@ using Moq;
 
 namespace LYL.Domain.Test;
 
-public class TestGameSessionService
+public class TestPhaseService
 {
     private const string RoomCode = "450090";
     private readonly Guid _playerId = Guid.NewGuid();
@@ -30,7 +30,7 @@ public class TestGameSessionService
         RemainingBudgetphase1monthly = 905m
     };
 
-    private (GameSessionService Service, Mock<IMemoryAccessService> Memory) CreateSut()
+    private (PhaseService Service, Mock<IMemoryAccessService> Memory) CreateSut()
 {
     var roomRepoMock = new Mock<IGameRoomRepository>();
     var supervisorRepoMock = new Mock<ISupervisorRepository>();
@@ -69,10 +69,8 @@ public class TestGameSessionService
 
     roomRepoMock.Setup(r => r.GetByRoomCodeAsync(RoomCode)).ReturnsAsync(room);
 
-    var service = new GameSessionService(
+    var service = new PhaseService(
         roomRepoMock.Object,
-        supervisorRepoMock.Object,
-        jsonSerializerMock.Object,
         memoryMock.Object,
         investmentCalculatorMock.Object,
         randomIntProviderMock.Object);

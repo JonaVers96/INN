@@ -34,8 +34,9 @@ builder.Services.AddCors(options =>
     });
 });
 
-builder.Services.AddScoped<IGameSessionService, GameSessionService>();
+builder.Services.AddScoped<IPhaseService, PhaseService>();
 builder.Services.AddScoped<IEventCardService, EventCardService>();
+builder.Services.AddScoped<IRoomService, RoomService>();
 
 //TODO: These are added as singletons as long as we are using in memory, this should normally just be addscoped
 builder.Services.AddSingleton<IGameRoomRepository, GameRoomRepository>();
