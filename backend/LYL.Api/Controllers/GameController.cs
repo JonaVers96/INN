@@ -14,7 +14,8 @@ namespace LYL.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class GameController(IGameSessionService gameSessionService, IHubContext<GameHub> hubContext, IInvestmentReturnsService investmentReturnsService) : ControllerBase
+public class GameController(IGameSessionService gameSessionService, IEventCardService eventCardService, IHubContext<GameHub> hubContext, IInvestmentReturnsService investmentReturnsService) : ControllerBase
+
 {
     [HttpPost("create")]
     public async Task<ActionResult<CreateRoomResponse>> CreateRoom([FromBody] CreateRoomRequest request)
@@ -183,7 +184,7 @@ public class GameController(IGameSessionService gameSessionService, IHubContext<
        
             try
             {
-                await gameSessionService.SaveEventCardsInput(roomId, playerGuid, request); 
+                await eventCardService.SaveEventCardsInput(roomId, playerGuid, request); 
                 return Ok();
             }
             catch (Exception ex)
@@ -202,7 +203,7 @@ public class GameController(IGameSessionService gameSessionService, IHubContext<
        
         try
         {
-            var cards = await gameSessionService.GetEventCards();
+            var cards = await eventCardService.GetEventCards();
             return Ok(cards);
         }
         catch (Exception e)

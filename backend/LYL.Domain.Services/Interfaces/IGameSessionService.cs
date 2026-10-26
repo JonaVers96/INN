@@ -25,6 +25,5 @@ public interface IGameSessionService
     Task<DossierCheckResult> CheckPhaseInputsMonthlyAsync(string roomCode, Guid playerId, DossierCheckRequest request); //TODO aanpassen naa request
     Task<DossierCheckResult> CheckPhaseInputsCalcsAsync(string roomCode, Guid playerId, DossierCheckRequest request);
     Task CloseRoomAsync(string roomCode);
-    Task<Dictionary<int, List<EventCard>>> GetEventCards();
-    Task SaveEventCardsInput(string roomId, Guid playerId, EventCardSaveRequestContract request);
+    
 }
