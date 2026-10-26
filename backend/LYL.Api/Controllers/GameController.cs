@@ -183,7 +183,7 @@ public class GameController(IGameSessionService gameSessionService, IHubContext<
        
             try
             {
-                await gameSessionService.SaveEventCardsInput(roomId, playerId, request); 
+                await gameSessionService.SaveEventCardsInput(roomId, playerGuid, request); 
                 return Ok();
             }
             catch (Exception ex)

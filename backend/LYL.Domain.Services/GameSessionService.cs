@@ -150,8 +150,7 @@ public class GameSessionService : IGameSessionService
 
     public async Task SetRoomActiveAsync(string roomCode, bool isActive)
     {
-        var room = await roomRepo.GetByRoomCodeAsync(roomCode);
-        if (room == null) throw new ArgumentException("Room not found");
+        var room = await roomRepo.GetRoomOrThrowAsync(roomCode);
 
         // Al gestart: niet opnieuw characters uitdelen (zou alle dossiers wissen)
         if (isActive && room.IsActive) return;
@@ -176,10 +175,10 @@ public class GameSessionService : IGameSessionService
         await roomRepo.UpdateAsync(room);
     }
 
-        public async Task<AddTableResponse> AddTableAsync(string roomCode)
+    public async Task<AddTableResponse> AddTableAsync(string roomCode)
     {
-        var room = await roomRepo.GetByRoomCodeAsync(roomCode);
-        if (room == null) throw new ArgumentException("Room not found");
+        var room = await roomRepo.GetRoomOrThrowAsync(roomCode);
+
 
         // Characters worden normaal pas bij de spelstart uitgedeeld (SetRoomActiveAsync).
         // Is het spel al bezig, dan moet de nieuwe tafel ze nu meteen krijgen: anders vindt een
@@ -233,8 +232,7 @@ public class GameSessionService : IGameSessionService
 
     public async Task CloseRoomAsync(string roomCode)
     {
-        var room = await roomRepo.GetByRoomCodeAsync(roomCode);
-        if (room == null) throw new ArgumentException("Room not found");
+        var room = await roomRepo.GetRoomOrThrowAsync(roomCode);
         await roomRepo.RemoveAsync(roomCode);
     }
 
@@ -279,30 +277,13 @@ public class GameSessionService : IGameSessionService
         return Task.FromResult(packagesInGroupsToReturn);
     }
 
-    public async Task SaveEventCardsInput(string roomId, string playerGuid, EventCardSaveRequestContract request)
+    public async Task SaveEventCardsInput(string roomId, Guid playerId, EventCardSaveRequestContract request)
     {
-        var room = await roomRepo.GetByRoomCodeAsync(roomId);
-        if (room == null) throw new Exception("Room not found");
-
-        var player = room.Tables
-            .SelectMany(t => t.Players)
-            .FirstOrDefault(p => p.PlayerId.ToString() == playerGuid);
-        if (player == null) throw new Exception("Player not found");
+        var (room, player) = await roomRepo.GetPlayerOrThrowAsync(roomId, playerId);
         if (player.Dossier == null) throw new InvalidOperationException("Het spel is nog niet gestart.");
 
-        try
-        {
-            var choosenEventsAsModel = request.AsModel();
-            player.Dossier.ChoosenEventCards = choosenEventsAsModel; 
-            await roomRepo.UpdateAsync(room);
-           
-        }
-        catch (Exception e)
-        {
-            Console.WriteLine(e);
-            throw;
-        }
-        
+        player.Dossier.ChoosenEventCards = request.AsModel();
+        await roomRepo.UpdateAsync(room);
     }
 
     //Helper, we can extract this into a utils folder and inject via interface
@@ -318,15 +299,68 @@ public class GameSessionService : IGameSessionService
         return code;
     }
 
-    //TODO Look at interface!!
+    private DossierData PrepareDossierData(Player player, DossierCheckRequest request)
+    {
+        if (player.Dossier == null) throw new InvalidOperationException("Het spel is nog niet gestart.");
+
+        // State eerst zetten, anders blijft dossierData leeg bij de eerste aanroep
+        player.DossierState ??= new FirstWorkphaseState(player.Dossier, memoryAccessService);
+
+        return player.DossierState switch
+        {
+            FirstWorkphaseState  => request.AsModelPhase1(),
+            SecondWorkphaseState => request.AsModelPhase2(),
+            _                    => new DossierData()
+        };
+    }
+
+    private static void ValidateStudentSelections(Character character, CompleteStudentPhaseRequest request)
+    {
+        int newlyAddedPoints = 0;
+        foreach (var selection in request.Selections)
+        {
+            var existingOption = character.StudentPhase.Options.FirstOrDefault(o => o.Id == selection.Key);
+            if (existingOption != null)
+            {
+                if (selection.Value < existingOption.FilledSlots || selection.Value > existingOption.MaxSlots)
+                {
+                    throw new ArgumentException($"Cheat gedetecteerd: Ongeldig aantal slots voor {existingOption.TitleKey}");
+                }
+
+                newlyAddedPoints += (selection.Value - existingOption.FilledSlots);
+            }
+        }
+
+        if (newlyAddedPoints > character.AllocatablePoints)
+        {
+            throw new ArgumentException("Je hebt te veel punten proberen te verdelen!");
+        }
+    }
+
+    private static void ApplyStudentSelections(Character character, CompleteStudentPhaseRequest request)
+    {
+        foreach (var selection in request.Selections)
+        {
+            var optionToUpdate = character.StudentPhase.Options.FirstOrDefault(o => o.Id == selection.Key);
+
+            if (optionToUpdate != null)
+            {
+                optionToUpdate.FilledSlots = selection.Value;
+            }
+        }
+    }
+
+
+
     public async Task<Character?> GetPlayerCharacterAsync(string roomCode, string playerId)
     {
+        if (!Guid.TryParse(playerId, out var playerGuid)) return null;
+
         var room = await roomRepo.GetByRoomCodeAsync(roomCode);
         if (room == null) return null;
 
-        var player = room.Tables
-            .SelectMany(t => t.Players)
-            .FirstOrDefault(p => p.PlayerId.ToString() == playerId);
+        var player = room.FindPlayer(playerGuid);
+
 
         if (player?.Character == null) return null;
 
@@ -343,14 +377,9 @@ public class GameSessionService : IGameSessionService
     public async Task<string> CompleteStudentPhaseAsync(string roomCode, Guid playerId,
         CompleteStudentPhaseRequest request)
     {
-        var room = await roomRepo.GetByRoomCodeAsync(roomCode);
-        if (room == null) throw new ArgumentException("Room not found");
+        var (room, player) = await roomRepo.GetPlayerOrThrowAsync(roomCode, playerId);
 
-        var player = room.Tables
-            .SelectMany(t => t.Players)
-            .FirstOrDefault(p => p.PlayerId == playerId);
-
-        if (player?.Character?.StudentPhase == null)
+        if (player.Character?.StudentPhase == null)
             throw new ArgumentException("Player or Character Data not found");
 
         // De studentenfase mag maar één keer afgerond worden
@@ -360,25 +389,9 @@ public class GameSessionService : IGameSessionService
         }
 
         // Eerst alles valideren, pas daarna wegschrijven (anders blijft een half aangepaste staat achter)
-        int newlyAddedPoints = 0;
-        foreach (var selection in request.Selections)
-        {
-            var existingOption = player.Character.StudentPhase.Options.FirstOrDefault(o => o.Id == selection.Key);
-            if (existingOption != null)
-            {
-                if (selection.Value < existingOption.FilledSlots || selection.Value > existingOption.MaxSlots)
-                {
-                    throw new ArgumentException($"Cheat gedetecteerd: Ongeldig aantal slots voor {existingOption.TitleKey}");
-                }
-
-                newlyAddedPoints += (selection.Value - existingOption.FilledSlots);
-            }
-        }
-
-        if (newlyAddedPoints > player.Character.AllocatablePoints)
-        {
-            throw new ArgumentException("Je hebt te veel punten proberen te verdelen!");
-        }
+               // Eerst alles valideren, pas daarna wegschrijven (anders blijft een half aangepaste staat achter)
+        ValidateStudentSelections(player.Character, request);
+        ApplyStudentSelections(player.Character, request);
 
         foreach (var selection in request.Selections)
         {
@@ -398,14 +411,7 @@ public class GameSessionService : IGameSessionService
 
     public async Task<string> CompleteFirstWorkPhaseAsync(string roomCode, Guid playerId)
     {
-        var room = await roomRepo.GetByRoomCodeAsync(roomCode);
-        if (room == null) throw new ArgumentException("Room not found");
-
-        var player = room.Tables
-            .SelectMany(t => t.Players)
-            .FirstOrDefault(p => p.PlayerId == playerId);
-
-        if (player == null) throw new ArgumentException("Player not found");
+        var (room, player) = await roomRepo.GetPlayerOrThrowAsync(roomCode, playerId);
 
         // Dubbele aanroep: al afgerond
         if (player.CurrentPhase == "second-work-phase") return player.CurrentPhase;
@@ -425,19 +431,9 @@ public class GameSessionService : IGameSessionService
 
     public async Task<DossierCheckResult> CheckPhaseInputsMonthlyAsync(string roomCode, Guid playerId, DossierCheckRequest request) 
     {
-        var room = await roomRepo.GetByRoomCodeAsync(roomCode);
-        if (room == null) throw new ArgumentException("Room not found");
+        var (room, player) = await roomRepo.GetPlayerOrThrowAsync(roomCode, playerId);
+        var dossierData = PrepareDossierData(player, request);
 
-        var player = room.Tables
-            .SelectMany(t => t.Players)
-            .FirstOrDefault(p => p.PlayerId == playerId);
-        if (player == null) throw new ArgumentException("Player not found");
-        if (player.Dossier == null) throw new InvalidOperationException("Het spel is nog niet gestart.");
-
-        player.DossierState ??= new FirstWorkphaseState(player.Dossier, memoryAccessService);
-        var dossierData = new DossierData();
-        if (player.DossierState is FirstWorkphaseState)  dossierData = request.AsModelPhase1();
-        if (player.DossierState is SecondWorkphaseState) dossierData = request.AsModelPhase2();
         if (room.Host.SkipChecks)
         {
             player.DossierState.AcceptWithoutCheck(dossierData);
@@ -450,20 +446,8 @@ public class GameSessionService : IGameSessionService
     
     public async Task<DossierCheckResult> CheckPhaseInputsCalcsAsync(string roomCode, Guid playerId, DossierCheckRequest request) 
     {
-        var room = await roomRepo.GetByRoomCodeAsync(roomCode);
-        if (room == null) throw new ArgumentException("Room not found");
-
-        var player = room.Tables
-            .SelectMany(t => t.Players)
-            .FirstOrDefault(p => p.PlayerId == playerId);
-        if (player == null) throw new ArgumentException("Player not found");
-        if (player.Dossier == null) throw new InvalidOperationException("Het spel is nog niet gestart.");
-
-        // State eerst zetten, anders blijft dossierData leeg bij de eerste aanroep
-        player.DossierState ??= new FirstWorkphaseState(player.Dossier, memoryAccessService);
-        var dossierData = new DossierData();
-        if (player.DossierState is FirstWorkphaseState)  dossierData = request.AsModelPhase1();
-        if (player.DossierState is SecondWorkphaseState) dossierData = request.AsModelPhase2();
+        var (room, player) = await roomRepo.GetPlayerOrThrowAsync(roomCode, playerId);
+        var dossierData = PrepareDossierData(player, request);
 
         //TODO: just a quick way to go to nextphase rn
         if (room.Host.SkipChecks)
