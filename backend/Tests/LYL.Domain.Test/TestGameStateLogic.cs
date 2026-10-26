@@ -1170,15 +1170,14 @@ public class TestGameStateLogic
         Assert.Throws<Exception>(() => state.CheckEventCardsInputAndTotal4(data, player));
     }
 
-    // TODO: new_job controleert niet of de kaart bestaat, daardoor NullReferenceException i.p.v. "Card not found"
-    [Fact]
-    public void GivenNewJobMissingFromData_WhenCheckingEventCards_ThenCurrentlyThrowsNullReference()
+[Fact]
+    public void GivenNewJobMissingFromData_WhenCheckingEventCards_ThenThrows()
     {
         var data = EventData(500m);
         var (state, player) = CreateEventCardSetup(data, null, Choice("new_job", "a"));
         _memory.Setup(m => m.GetAllEventCards()).Returns([]);
 
-        Assert.Throws<NullReferenceException>(() => state.CheckEventCardsInputAndTotal4(data, player));
+        Assert.Throws<Exception>(() => state.CheckEventCardsInputAndTotal4(data, player));
     }
 
 
