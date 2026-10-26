@@ -283,7 +283,6 @@ public class SecondWorkphaseState(Dossier dossier, IMemoryAccessService service)
     
     public override DossierCheckResult CheckEventCardsInputAndTotal4(DossierData data, Player player)
     {
-        //TODO testen!!!
         
         var invalid = new List<string>();
         decimal? totalImpactEventCards = 0;
