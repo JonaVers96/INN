@@ -212,7 +212,11 @@
     "pin_error_generic": "Something went wrong. Please try again.",
     "close_room_button" : "close room",
     "add_table_button": "Add table",
-    "adding_table": "Adding table..."
+    "adding_table": "Adding table...",
+    "settings": "Settings",
+    "close_settings": "Close",
+    "skip_checks": "Disable checks",
+    "skip_checks_info": "Players can enter any numbers without them being checked."
   },
   "phases": {
     "offline": "Offline",

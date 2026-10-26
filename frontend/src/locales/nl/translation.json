@@ -213,7 +213,11 @@
     "pin_error_generic": "Er ging iets mis. Probeer opnieuw.",
     "close_room_button" : "Kamer sluiten",
     "add_table_button": "Tafel toevoegen",
-    "adding_table": "Tafel toevoegen..."
+    "adding_table": "Tafel toevoegen...",
+    "settings": "Instellingen",
+    "close_settings": "Sluiten",
+    "skip_checks": "Controles uitschakelen",
+    "skip_checks_info": "Spelers kunnen alle getallen invullen zonder dat ze gecontroleerd worden."
   },
   "phases": {
     "offline": "Offline",

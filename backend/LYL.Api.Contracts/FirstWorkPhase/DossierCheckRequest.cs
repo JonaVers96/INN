@@ -72,7 +72,7 @@ public class DossierCheckRequest
     public decimal? AccidentInsurancePhase2 { get; set; }
     
     [JsonPropertyName("remaining_budget_phase1")]
-    public decimal RemainingBudgetphase1monthly { get; set; }
+    public decimal? RemainingBudgetphase1monthly { get; set; }
     
     [JsonPropertyName("remaining_budget_phase2")]
     public decimal? RemainingBudgetphase2monthly { get; set; }

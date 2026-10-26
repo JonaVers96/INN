@@ -438,6 +438,11 @@ public class GameSessionService : IGameSessionService
         var dossierData = new DossierData();
         if (player.DossierState is FirstWorkphaseState)  dossierData = request.AsModelPhase1();
         if (player.DossierState is SecondWorkphaseState) dossierData = request.AsModelPhase2();
+        if (room.Host.SkipChecks)
+        {
+            player.DossierState.AcceptWithoutCheck(dossierData);
+            return new DossierCheckResult(true, []);
+        }
         
         return player.CheckMontlhy(dossierData);
         
@@ -461,6 +466,13 @@ public class GameSessionService : IGameSessionService
         if (player.DossierState is SecondWorkphaseState) dossierData = request.AsModelPhase2();
 
         //TODO: just a quick way to go to nextphase rn
+        if (room.Host.SkipChecks)
+        {
+            player.DossierState.AcceptWithoutCheck(dossierData);
+            if (player.DossierState is FirstWorkphaseState) player.DossierState.NextPhase(player);
+            return new DossierCheckResult(true, []);
+        }
+
         var result = player.CheckCalculations(dossierData, investmentCalculator);
         if (result.IsValid && player.DossierState is FirstWorkphaseState) player.DossierState.NextPhase(player);
         return result;
