@@ -5,7 +5,9 @@ import { useSignalR } from "../hooks/useSignalR";
 import type { JoinTableResponse, LeaveTableResponse } from "../types/Reponses";
 import type { Player } from "../types/Models";
 import TableGrid from "../components/TableGrid";
+import { FaBars, FaTimes } from "react-icons/fa";
 
+const supervisorId = "18822955-30ec-4456-96f4-f7539a297ad1";
 const SupervisorPage = () => {
   const { t } = useTranslation();
   const connection = useSignalR();
@@ -17,6 +19,20 @@ const SupervisorPage = () => {
   const [isClosing, setIsClosing] = useState(false);
   const [tableCount, setTableCount] = useState(0);
   const [isAddingTable, setIsAddingTable] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [skipChecks, setSkipChecks] = useState(false);
+  const [isSavingSkipChecks, setIsSavingSkipChecks] = useState(false);
+  
+  useEffect(() => {
+    axios
+      .get(
+        `${import.meta.env.VITE_API_BASE_URL}/api/supervisor/${supervisorId}/skip-checks`,
+      )
+      .then((response) => setSkipChecks(response.data.skipChecks))
+      .catch((error) =>
+        console.error("Fout bij ophalen van de controle-instelling:", error),
+      );
+  }, []);
 
   useEffect(() => {
     const restoreSession = async () => {
@@ -128,7 +144,24 @@ const SupervisorPage = () => {
     };
   }, [connection]);
 
-  const supervisorId = "18822955-30ec-4456-96f4-f7539a297ad1";
+    const handleToggleSkipChecks = async () => {
+    if (isSavingSkipChecks) return;
+
+    const newValue = !skipChecks;
+    setIsSavingSkipChecks(true);
+    try {
+      const response = await axios.put(
+        `${import.meta.env.VITE_API_BASE_URL}/api/supervisor/${supervisorId}/skip-checks`,
+        newValue,
+        { headers: { "Content-Type": "application/json" } },
+      );
+      setSkipChecks(response.data.skipChecks);
+    } catch (error) {
+      console.error("Fout bij wijzigen van de controle-instelling:", error);
+    } finally {
+      setIsSavingSkipChecks(false);
+    }
+  };
 
   const handleCreateRoom = async () => {
     try {
@@ -171,6 +204,7 @@ const SupervisorPage = () => {
       setRoomCode(null);
       setPlayers([]);
       setIsGameStarted(false);
+      setIsSettingsOpen(false);
     } catch (error) {
       console.error("Fout bij het sluiten van de kamer:", error);
     } finally {
@@ -276,6 +310,76 @@ const SupervisorPage = () => {
               </p>
             )}
 
+          </div>
+        )}
+      </div>
+
+      <button
+        onClick={() => setIsSettingsOpen(true)}
+        aria-label={t("supervisor_page.settings", "Instellingen")}
+        className="fixed top-6 left-6 z-30 flex items-center gap-2 bg-white text-teal-700 font-extrabold py-3 px-5 rounded-full shadow-md border-2 border-teal-100 hover:bg-teal-50 transition-colors text-sm uppercase tracking-wider"
+      >
+        <FaBars />
+        {t("supervisor_page.settings", "Instellingen")}
+      </button>
+
+      {isSettingsOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-slate-900/40"
+          onClick={() => setIsSettingsOpen(false)}
+        />
+      )}
+
+      <aside
+        className={`fixed top-0 left-0 z-50 h-full w-80 max-w-[85vw] bg-white shadow-2xl p-6 flex flex-col gap-6 transition-transform duration-300 ${
+          isSettingsOpen ? "translate-x-0" : "-translate-x-full"
+        }`}
+      >
+        <div className="flex items-center justify-between">
+          <h2 className="text-2xl font-black text-teal-800 uppercase tracking-wider">
+            {t("supervisor_page.settings", "Instellingen")}
+          </h2>
+          <button
+            onClick={() => setIsSettingsOpen(false)}
+            aria-label={t("supervisor_page.close_settings", "Sluiten")}
+            className="text-slate-400 hover:text-slate-600 text-xl"
+          >
+            <FaTimes />
+          </button>
+        </div>
+
+        <label className="flex items-center justify-between gap-4 cursor-pointer">
+          <span className="flex flex-col">
+            <span className="font-bold text-slate-700">
+              {t("supervisor_page.skip_checks", "Controles uitschakelen")}
+            </span>
+            <span className="text-xs text-slate-400">
+              {t(
+                "supervisor_page.skip_checks_info",
+                "Spelers kunnen alle getallen invullen zonder dat ze gecontroleerd worden.",
+              )}
+            </span>
+          </span>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={skipChecks}
+            onClick={handleToggleSkipChecks}
+            disabled={isSavingSkipChecks}
+            className={`relative inline-flex h-7 w-12 shrink-0 rounded-full transition-colors disabled:opacity-50 ${
+              skipChecks ? "bg-amber-500" : "bg-slate-300"
+            }`}
+          >
+            <span
+              className={`absolute top-1 left-1 h-5 w-5 rounded-full bg-white shadow transition-transform ${
+                skipChecks ? "translate-x-5" : "translate-x-0"
+              }`}
+            />
+          </button>
+        </label>
+
+        {roomCode && (
+          <div className="flex flex-col gap-3 border-t border-slate-100 pt-6">
             <button
               onClick={handleAddTable}
               disabled={isAddingTable}
@@ -295,11 +399,9 @@ const SupervisorPage = () => {
                 ? t("supervisor_page.closing", "Sluiten...")
                 : t("supervisor_page.close_room_button", "Kamer sluiten")}
             </button>
-
-                        
           </div>
         )}
-      </div>
+      </aside>
 
       {roomCode && (
         <div className="max-w-[90rem] mx-auto">

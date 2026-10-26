@@ -21,5 +21,6 @@ public abstract class DossierState
     public abstract DossierCheckResult CheckCalculationPhase(DossierData data, Player player,  IInvestmentCalculator calculator);
     public abstract void NextPhase(Player player);
     public abstract DossierCheckResult CheckEventCardsInputAndTotal4(DossierData data, Player player);
-    
+    public abstract void AcceptWithoutCheck(DossierData data);
+
 }
