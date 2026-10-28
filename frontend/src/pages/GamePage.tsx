@@ -16,6 +16,7 @@ import axios from "axios";
 import { FaDice } from "react-icons/fa";
 import type { SaveEventCardsRequest } from "../types/EventCardContracts";
 import LivingSituationCard from "../components/LivingSituationCard";
+import { getSession } from "../api/dossierApi";
 
 const GamePage = () => {
   const { character } = useCharacter();
@@ -48,12 +49,13 @@ const GamePage = () => {
     ];
   };
   const fetchAndStartEventCards = async () => {
-    const roomCode = localStorage.getItem("roomCode");
-    const playerId = localStorage.getItem("playerId");
+    const session = getSession();
     try {
+      if (!session) throw new Error("Geen actieve sessie gevonden");
       const response = await axios.get(
-        `${import.meta.env.VITE_API_BASE_URL}/api/game/${roomCode}/player/${playerId}/getEventCards`,
+        `${import.meta.env.VITE_API_BASE_URL}/api/game/${session.roomCode}/player/${session.playerId}/getEventCards`,
       );
+
       const packs = Object.values(response.data) as EventCard[][];
       setEventPacks(packs);
     } catch (err) {
@@ -67,8 +69,8 @@ const GamePage = () => {
   };
 
   const saveEventCardChoices = async () => {
-    const roomCode = localStorage.getItem("roomCode");
-    const playerId = localStorage.getItem("playerId");
+    const session = getSession();
+    if (!session) return;
     try {
       const payload: SaveEventCardsRequest = {
         choices: chosenCards.map(({ card, conditionId }) => ({
@@ -79,7 +81,7 @@ const GamePage = () => {
       console.log("Payload:", JSON.stringify(payload, null, 2));
 
       await axios.post(
-        `${import.meta.env.VITE_API_BASE_URL}/api/game/${roomCode}/player/${playerId}/saveEventCardsChoices`,
+        `${import.meta.env.VITE_API_BASE_URL}/api/game/${session.roomCode}/player/${session.playerId}/saveEventCardsChoices`,
         payload,
       );
     } catch (err) {
