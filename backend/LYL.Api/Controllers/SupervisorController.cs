@@ -1,11 +1,12 @@
 using LYL.Api.Contracts.Supervisor;
+using LYL.Persistence.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
 namespace LYL.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class SupervisorController(IConfiguration configuration) : ControllerBase
+public class SupervisorController(IConfiguration configuration, ISupervisorRepository supervisorRepository) : ControllerBase
 {
     [HttpPost("verify-pin")]
     public IActionResult VerifyPin([FromBody] VerifyPinRequest request)
@@ -23,5 +24,24 @@ public class SupervisorController(IConfiguration configuration) : ControllerBase
         }
 
         return Unauthorized();
+    }
+    
+    [HttpGet("{supervisorId:guid}/skip-checks")]
+    public async Task<IActionResult> GetSkipChecks(Guid supervisorId)
+    {
+        var supervisor = await supervisorRepository.GetByIdAsync(supervisorId);
+        if (supervisor == null) return NotFound();
+
+        return Ok(new { skipChecks = supervisor.SkipChecks });
+    }
+
+    [HttpPut("{supervisorId:guid}/skip-checks")]
+    public async Task<IActionResult> SetSkipChecks(Guid supervisorId, [FromBody] bool skipChecks)
+    {
+        var supervisor = await supervisorRepository.GetByIdAsync(supervisorId);
+        if (supervisor == null) return NotFound();
+
+        supervisor.SkipChecks = skipChecks;
+        return Ok(new { skipChecks });
     }
 }
