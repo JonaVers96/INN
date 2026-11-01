@@ -12,4 +12,6 @@ public class Supervisor
     public string ConnectionId { get; set; }
 
     public bool SkipChecks { get; set; }
+
+      public string Language { get; set; } = "en";
 }

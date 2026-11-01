@@ -9,7 +9,7 @@ import { FaBars, FaTimes } from "react-icons/fa";
 
 const supervisorId = "18822955-30ec-4456-96f4-f7539a297ad1";
 const SupervisorPage = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const connection = useSignalR();
 
   const [roomCode, setRoomCode] = useState<string | null>(null);
@@ -22,6 +22,7 @@ const SupervisorPage = () => {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [skipChecks, setSkipChecks] = useState(false);
   const [isSavingSkipChecks, setIsSavingSkipChecks] = useState(false);
+  const [language, setLanguage] = useState("en");
   
   useEffect(() => {
     axios
@@ -32,7 +33,19 @@ const SupervisorPage = () => {
       .catch((error) =>
         console.error("Fout bij ophalen van de controle-instelling:", error),
       );
+    axios
+      .get(
+        `${import.meta.env.VITE_API_BASE_URL}/api/supervisor/${supervisorId}/language`,
+      )
+      .then((response) => setLanguage(response.data.language))
+      .catch((error) =>
+        console.error("Fout bij ophalen van de taal:", error),
+      );
   }, []);
+
+    useEffect(() => {
+    i18n.changeLanguage(language);
+  }, [language, i18n]);
 
   useEffect(() => {
     const restoreSession = async () => {
@@ -75,6 +88,7 @@ const SupervisorPage = () => {
         }
       }
     };
+    
 
     restoreSession();
   }, [connection]);
@@ -160,6 +174,24 @@ const SupervisorPage = () => {
       console.error("Fout bij wijzigen van de controle-instelling:", error);
     } finally {
       setIsSavingSkipChecks(false);
+    }
+  };
+
+  const handleLanguageChange = async (newLanguage: string) => {
+    const previousLanguage = language;
+    setLanguage(newLanguage);
+
+    const url = `${import.meta.env.VITE_API_BASE_URL}/api/supervisor/${supervisorId}/language`;
+    try {
+      const response = await axios.put(
+        roomCode ? `${url}?roomCode=${roomCode}` : url,
+        JSON.stringify(newLanguage),
+        { headers: { "Content-Type": "application/json" } },
+      );
+      setLanguage(response.data.language);
+    } catch (error) {
+      console.error("Fout bij wijzigen van de taal:", error);
+      setLanguage(previousLanguage);
     }
   };
 
@@ -376,6 +408,29 @@ const SupervisorPage = () => {
               }`}
             />
           </button>
+        </label>
+
+        <label className="flex flex-col gap-2">
+          <span className="flex flex-col">
+            <span className="font-bold text-slate-700">
+              {t("supervisor_page.language", "Taal van de spelers")}
+            </span>
+            <span className="text-xs text-slate-400">
+              {t(
+                "supervisor_page.language_info",
+                "In welke taal de spelers het spel zien.",
+              )}
+            </span>
+          </span>
+          <select
+            value={language}
+            onChange={(e) => handleLanguageChange(e.target.value)}
+            className="border-2 border-teal-100 rounded-xl py-2 px-3 font-bold text-teal-700 bg-white focus:outline-none focus:border-teal-400"
+          >
+            <option value="nl">Nederlands</option>
+            <option value="en">English</option>
+            <option value="fr">Français</option>
+          </select>
         </label>
 
         {roomCode && (

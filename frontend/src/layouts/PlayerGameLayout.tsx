@@ -4,11 +4,13 @@ import { CharacterProvider } from "../contexts/CharacterProvider";
 import { useSignalR } from "../hooks/useSignalR";
 import { useNavigationBlocker } from "../hooks/useNavigationBlocker";
 import NavigationBlockedModal from "../components/NavigationBlockedModal";
+import { usePlayerLanguage } from "../hooks/usePlayerLanguage";
 
 export default function PlayerGameLayout() {
   const connection = useSignalR();
   const navigate = useNavigate();
   const { isBlocked, dismiss } = useNavigationBlocker();
+  usePlayerLanguage();
 
   useEffect(() => {
     if (!connection) return;
