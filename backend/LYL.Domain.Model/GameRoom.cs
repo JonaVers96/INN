@@ -41,4 +41,8 @@ public class GameRoom
             return table;
         }
     }
+
+    public Player? FindPlayer(Guid playerId) =>
+        Tables.SelectMany(t => t.Players).FirstOrDefault(p => p.PlayerId == playerId);
+
 }

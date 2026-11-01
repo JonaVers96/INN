@@ -52,13 +52,21 @@ export const CharacterProvider = ({ children }: { children: ReactNode }) => {
     [],
   );
 
+    const revealLivingSituation = useCallback(() => {
+    setCharacter((prev) =>
+      prev
+        ? { ...prev, livingSituation: { ...prev.livingSituation, isShown: true } }
+        : prev,
+    );
+  }, []);
+
   useEffect(() => {
     void fetchCharacter();
   }, [fetchCharacter]);
 
   return (
     <CharacterContext.Provider
-      value={{ character, isLoading, error, fetchCharacter }}
+      value={{ character, isLoading, error, fetchCharacter, revealLivingSituation }}
     >
       {children}
     </CharacterContext.Provider>
