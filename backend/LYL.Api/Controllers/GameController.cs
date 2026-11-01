@@ -14,19 +14,20 @@ namespace LYL.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class GameController(IGameSessionService gameSessionService, IHubContext<GameHub> hubContext, IInvestmentReturnsService investmentReturnsService) : ControllerBase
+public class GameController(IPhaseService PhaseService, IEventCardService eventCardService, IHubContext<GameHub> hubContext, IInvestmentReturnsService investmentReturnsService, IRoomService roomService) : ControllerBase
+
 {
     [HttpPost("create")]
     public async Task<ActionResult<CreateRoomResponse>> CreateRoom([FromBody] CreateRoomRequest request)
     {
-        var response = await gameSessionService.CreateRoomAsync(request);
+        var response = await roomService.CreateRoomAsync(request);
         return Ok(response);
     }
 
     [HttpPost("{roomCode}/start")]
     public async Task<IActionResult> StartGame(string roomCode)
     {
-        await gameSessionService.SetRoomActiveAsync(roomCode, true);
+        await roomService.SetRoomActiveAsync(roomCode, true);
 
         await hubContext.Clients.Group(roomCode).SendAsync("GameStarted", "character-discovery");
 
@@ -36,7 +37,7 @@ public class GameController(IGameSessionService gameSessionService, IHubContext<
     [HttpPost("{roomCode}/tables")]
     public async Task<ActionResult<AddTableResponse>> AddTable(string roomCode)
     {
-        var response = await gameSessionService.AddTableAsync(roomCode);
+        var response = await roomService.AddTableAsync(roomCode);
         return Ok(response);
     }
 
@@ -45,7 +46,7 @@ public class GameController(IGameSessionService gameSessionService, IHubContext<
     [HttpGet("{roomCode}")]
     public async Task<ActionResult<RoomStateResponse>> GetRoomState(string roomCode)
     {
-        var roomState = await gameSessionService.GetRoomStateAsync(roomCode);
+        var roomState = await roomService.GetRoomStateAsync(roomCode);
 
         if (roomState == null)
         {
@@ -58,7 +59,7 @@ public class GameController(IGameSessionService gameSessionService, IHubContext<
     [HttpGet("{roomCode}/player/{playerId}/character")]
     public async Task<IActionResult> GetPlayerCharacter(string roomCode, string playerId)
     {
-        var character = await gameSessionService.GetPlayerCharacterAsync(roomCode, playerId);
+        var character = await PhaseService.GetPlayerCharacterAsync(roomCode, playerId);
 
         if (character == null)
         {
@@ -77,7 +78,7 @@ public class GameController(IGameSessionService gameSessionService, IHubContext<
             return BadRequest(new { message = "Ongeldig speler ID." });
         }
 
-        var updatedPhase = await gameSessionService.CompleteStudentPhaseAsync(roomId, playerGuid, dto);
+        var updatedPhase = await PhaseService.CompleteStudentPhaseAsync(roomId, playerGuid, dto);
 
         await hubContext.Clients.Group(roomId).SendAsync("PlayerPhaseUpdated", new
         {
@@ -97,7 +98,7 @@ public class GameController(IGameSessionService gameSessionService, IHubContext<
         string updatedPhase;
         try
         {
-            updatedPhase = await gameSessionService.CompleteFirstWorkPhaseAsync(roomId, playerGuid);
+            updatedPhase = await PhaseService.CompleteFirstWorkPhaseAsync(roomId, playerGuid);
         }
         catch (Exception ex)
         {
@@ -123,7 +124,7 @@ public class GameController(IGameSessionService gameSessionService, IHubContext<
 
         try
         {
-            var result = await gameSessionService.CheckPhaseInputsCalcsAsync(roomId, playerGuid, request);
+            var result = await PhaseService.CheckPhaseInputsCalcsAsync(roomId, playerGuid, request);
             return Ok(result);
         }
         catch (Exception ex)
@@ -139,7 +140,7 @@ public class GameController(IGameSessionService gameSessionService, IHubContext<
         if (!Guid.TryParse(playerId, out var playerGuid))
             return BadRequest(new { message = "Ongeldig speler ID." });
 
-        var character = await gameSessionService.GetPlayerCharacterAsync(roomCode, playerGuid.ToString());
+        var character = await PhaseService.GetPlayerCharacterAsync(roomCode, playerGuid.ToString());
         if (character == null)
             return NotFound(new { message = "Room or player not found." });
 
@@ -150,7 +151,7 @@ public class GameController(IGameSessionService gameSessionService, IHubContext<
     [HttpDelete("{roomCode}")]
     public async Task<IActionResult> CloseRoom(string roomCode)
     {
-        await gameSessionService.CloseRoomAsync(roomCode);
+        await roomService.CloseRoomAsync(roomCode);
         await hubContext.Clients.Group(roomCode).SendAsync("RoomClosed");
         return NoContent();
     }
@@ -165,7 +166,7 @@ public class GameController(IGameSessionService gameSessionService, IHubContext<
 
          try
          {
-             var result = await gameSessionService.CheckPhaseInputsMonthlyAsync(roomId, playerGuid, request);
+             var result = await PhaseService.CheckPhaseInputsMonthlyAsync(roomId, playerGuid, request);
              return Ok(result);
          }
          catch (Exception ex)
@@ -183,7 +184,7 @@ public class GameController(IGameSessionService gameSessionService, IHubContext<
        
             try
             {
-                await gameSessionService.SaveEventCardsInput(roomId, playerId, request); 
+                await eventCardService.SaveEventCardsInput(roomId, playerGuid, request); 
                 return Ok();
             }
             catch (Exception ex)
@@ -202,7 +203,7 @@ public class GameController(IGameSessionService gameSessionService, IHubContext<
        
         try
         {
-            var cards = await gameSessionService.GetEventCards();
+            var cards = await eventCardService.GetEventCards();
             return Ok(cards);
         }
         catch (Exception e)

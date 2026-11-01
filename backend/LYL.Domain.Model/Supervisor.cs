@@ -10,4 +10,6 @@ public class Supervisor
 
 //  This is used for the server to know to which browser it needs to send the updates surrounding the   players
     public string ConnectionId { get; set; }
+
+    public bool SkipChecks { get; set; }
 }

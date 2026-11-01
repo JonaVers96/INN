@@ -3,6 +3,7 @@ using LYL.Domain.Model.Dossiers;
 using LYL.Domain.Model.Interfaces;
 using LYL.Domain.Model.States;
 using Moq;
+using LYL.Domain.Model.JsonModel.Event;
 
 namespace LYL.Domain.Test;
 
@@ -633,4 +634,551 @@ public class TestGameStateLogic
 
         Assert.Throws<NotImplementedException>(() => state.NextPhase(player));
     }
+
+    // =====================================================================
+    // CheckEventCardsInputAndTotal4 
+    // =====================================================================
+    private static EventCard Card(string id, params (string conditionId, decimal amount)[] options) => new()
+    {
+        Id = id,
+        Options = options.Select(c => new EventCardOption { ConditionId = c.conditionId, Amount = c.amount }).ToList()
+    };
+        
+    // kosten negatief, inkomsten positief (zoals in de JSON)
+    private static List<EventCard> TestEventCards() =>
+    [
+        Card("second_car", ("", -5000m)),
+        Card("divorce"),
+        Card("car_accident_parked", ("normal", -500m), ("sport", -1000m)),
+        Card("car_accident_hail", ("small", -300m), ("big", -800m)),
+        Card("car_accident_traffic_jam", ("normal", -400m), ("sport", -900m)),
+        Card("inheritance", ("small", 2000m), ("big", 10000m)),
+        Card("house_on_fire", ("NO", -20000m)),
+        Card("storm_damage_trampoline", ("NO", -150m)),
+        Card("storm_damage_roof", ("NO", -2500m)),
+        Card("dismissal", ("0", -1000m), ("1", -2000m), ("2", -3000m), ("3", -4000m)),
+        Card("promotion", ("0", 0m), ("1", 1000m), ("2", 2000m), ("3", 3000m)),
+        Card("new_job", ("a", 500m)),
+        Card("financial_support", ("a", 750m)),
+        Card("holiday", ("a", -600m)),
+        Card("leaking_roof", ("owner", -1200m)),
+        Card("illness_dice", ("1", -100m), ("2", -200m)),
+        Card("hospital_treatment", ("NO", -3000m)),
+        Card("housing_costs_1", ("a", -250m)),
+        Card("housing_costs_2", ("a", -350m)),
+        Card("depression", ("a", -450m)),
+    ];
+
+    // Total3 en resterend budget op 0, zodat Total4 gelijk is aan de som van de event-impacten
+    private static DossierData EventData(decimal? event1 = null, decimal? event2 = null, decimal? event3 = null) => new()
+    {
+        NetSalaryPartner = 1000m,
+        HousingCost = 700m,
+        Total3 = 0m,
+        CalcRemainingBudgetWholePhase2 = 0m,
+        Event1Impact = event1,
+        Event2Impact = event2,
+        Event3Impact = event3
+    };
+    private (SecondWorkphaseState state, Player player) CreateEventCardSetup(
+        DossierData data, Dossier? dossier = null, params EventCardChoices[] choices)
+    {
+        dossier ??= CreateDossier(partnerWage: 1000m, partnerSavings: 5000m, children: 1);
+        dossier.secondWorkphaseDossier = data;
+        dossier.ChoosenEventCards = new SavedEventCards { Choices = choices.ToList() };
+        _memory.Setup(m => m.GetAllEventCards()).Returns(TestEventCards());
+
+        var state = CreateSecondState(dossier);
+        return (state, CreatePlayer(state, dossier));
+    }
+
+    private static EventCardChoices Choice(string cardId, string? conditionId = null)
+        => new() { CardId = cardId, ConditionId = conditionId };
+    
+    [Theory]
+    [InlineData(5000)]
+    [InlineData(-5000)]
+    public void GivenCorrectSecondCarImpact_WhenCheckingEventCards_ThenEventIsValid(int impact)
+    {
+        var data = EventData(impact);
+        var (state, player) = CreateEventCardSetup(data, null, Choice("second_car"));
+
+        var result = state.CheckEventCardsInputAndTotal4(data, player);
+
+        Assert.DoesNotContain("calc_p2_event1", result.InvalidFields);
+    }
+
+    [Fact]
+    public void GivenWrongSecondCarImpact_WhenCheckingEventCards_ThenEvent1IsInvalid()
+    {
+        var data = EventData(1234m);
+        var (state, player) = CreateEventCardSetup(data, null, Choice("second_car"));
+
+        var result = state.CheckEventCardsInputAndTotal4(data, player);
+
+        Assert.Contains("calc_p2_event1", result.InvalidFields);
+    }
+
+    [Theory]
+    [InlineData("illness_dice", "2", 200)]
+    [InlineData("housing_costs_1", "a", 250)]
+    [InlineData("housing_costs_2", "a", 350)]
+    [InlineData("depression", "a", 450)]
+    public void GivenCorrectConditionCost_WhenCheckingEventCards_ThenEventIsValid(string cardId, string condition, int impact)
+    {
+        var data = EventData(impact);
+        var (state, player) = CreateEventCardSetup(data, null, Choice(cardId, condition));
+
+        var result = state.CheckEventCardsInputAndTotal4(data, player);
+
+        Assert.DoesNotContain("calc_p2_event1", result.InvalidFields);
+    }
+
+    [Theory]
+    [InlineData("illness_dice", "1", 200)]  // bedrag van optie 2 bij conditie 1
+    [InlineData("housing_costs_1", "a", 251)]
+    [InlineData("housing_costs_2", "a", 351)]
+    [InlineData("depression", "a", 451)]
+    public void GivenWrongConditionCost_WhenCheckingEventCards_ThenEvent1IsInvalid(string cardId, string condition, int impact)
+    {
+        var data = EventData(impact);
+        var (state, player) = CreateEventCardSetup(data, null, Choice(cardId, condition));
+
+        var result = state.CheckEventCardsInputAndTotal4(data, player);
+
+        Assert.Contains("calc_p2_event1", result.InvalidFields);
+    }
+
+    [Theory]
+    [InlineData("inheritance", "small", 2000)]
+    [InlineData("inheritance", "big", 10000)]
+    [InlineData("new_job", "a", 500)]
+    [InlineData("financial_support", "a", 750)]
+    public void GivenCorrectIncome_WhenCheckingEventCards_ThenEventIsValid(string cardId, string condition, int impact)
+    {
+        var data = EventData(impact);
+        var (state, player) = CreateEventCardSetup(data, null, Choice(cardId, condition));
+
+        var result = state.CheckEventCardsInputAndTotal4(data, player);
+
+        Assert.DoesNotContain("calc_p2_event1", result.InvalidFields);
+    }
+
+    [Theory]
+    [InlineData("inheritance", "small", 10000)]
+    [InlineData("new_job", "a", 501)]
+    [InlineData("financial_support", "a", 749)]
+    public void GivenWrongIncome_WhenCheckingEventCards_ThenEvent1IsInvalid(string cardId, string condition, int impact)
+    {
+        var data = EventData(impact);
+        var (state, player) = CreateEventCardSetup(data, null, Choice(cardId, condition));
+
+        var result = state.CheckEventCardsInputAndTotal4(data, player);
+
+        Assert.Contains("calc_p2_event1", result.InvalidFields);
+    }
+
+    [Theory]
+    [InlineData(25, 500)]   // gewone verzekering -> optie 0
+    [InlineData(55, 1000)]  // sportwagen -> optie 1
+    [InlineData(70, 0)]     // franchise -> geen kost
+    public void GivenCarAccidentParkedWithInsurance_WhenCheckingEventCards_ThenMatchingOptionIsUsed(int insurance, int impact)
+    {
+        var data = EventData(impact);
+        data.TransportInsuranceCost = insurance;
+        var (state, player) = CreateEventCardSetup(data, null, Choice("car_accident_parked"));
+
+        var result = state.CheckEventCardsInputAndTotal4(data, player);
+
+        Assert.DoesNotContain("calc_p2_event1", result.InvalidFields);
+    }
+
+    [Theory]
+    [InlineData(25, 1000)]  // bedrag van de sportwagen bij gewone verzekering
+    [InlineData(70, 500)]   // franchise maar toch een kost ingevuld
+    public void GivenCarAccidentParkedWithWrongImpact_WhenCheckingEventCards_ThenEvent1IsInvalid(int insurance, int impact)
+    {
+        var data = EventData(impact);
+        data.TransportInsuranceCost = insurance;
+        var (state, player) = CreateEventCardSetup(data, null, Choice("car_accident_parked"));
+
+        var result = state.CheckEventCardsInputAndTotal4(data, player);
+
+        Assert.Contains("calc_p2_event1", result.InvalidFields);
+    }
+
+    [Theory]
+    [InlineData(25, "small", 300)]
+    [InlineData(25, "big", 800)]
+    [InlineData(55, "big", 0)]
+    [InlineData(70, "small", 0)]
+    public void GivenCarAccidentHailWithInsurance_WhenCheckingEventCards_ThenEventIsValid(int insurance, string condition, int impact)
+    {
+        var data = EventData(impact);
+        data.TransportInsuranceCost = insurance;
+        var (state, player) = CreateEventCardSetup(data, null, Choice("car_accident_hail", condition));
+
+        var result = state.CheckEventCardsInputAndTotal4(data, player);
+
+        Assert.DoesNotContain("calc_p2_event1", result.InvalidFields);
+    }
+
+    [Theory]
+    [InlineData(25, "small", 800)]  // bedrag van de andere conditie
+    [InlineData(55, "big", 800)]    // franchise maar toch een kost ingevuld
+    public void GivenCarAccidentHailWithWrongImpact_WhenCheckingEventCards_ThenEvent1IsInvalid(int insurance, string condition, int impact)
+    {
+        var data = EventData(impact);
+        data.TransportInsuranceCost = insurance;
+        var (state, player) = CreateEventCardSetup(data, null, Choice("car_accident_hail", condition));
+
+        var result = state.CheckEventCardsInputAndTotal4(data, player);
+
+        Assert.Contains("calc_p2_event1", result.InvalidFields);
+    }
+
+    [Theory]
+    [InlineData(25, 400)]
+    [InlineData(55, 900)]
+    [InlineData(70, 0)]
+    public void GivenTrafficJamWithInsurance_WhenCheckingEventCards_ThenMatchingOptionIsUsed(int insurance, int impact)
+    {
+        var data = EventData(impact);
+        data.TransportInsuranceCost = insurance;
+        var (state, player) = CreateEventCardSetup(data, null, Choice("car_accident_traffic_jam"));
+
+        var result = state.CheckEventCardsInputAndTotal4(data, player);
+
+        Assert.DoesNotContain("calc_p2_event1", result.InvalidFields);
+    }
+
+    [Fact]
+    public void GivenTrafficJamWithOnlyAccidentInsurance_WhenCheckingEventCards_ThenNoCostIsExpected()
+    {
+        var data = EventData(0m);
+        data.TransportInsuranceCost = 0m;
+        data.AccidentInsuranceCost = 7m;
+        var (state, player) = CreateEventCardSetup(data, null, Choice("car_accident_traffic_jam"));
+
+        var result = state.CheckEventCardsInputAndTotal4(data, player);
+
+        Assert.DoesNotContain("calc_p2_event1", result.InvalidFields);
+    }
+
+    [Fact]
+    public void GivenTrafficJamWithWrongImpact_WhenCheckingEventCards_ThenEvent1IsInvalid()
+    {
+        var data = EventData(900m); // sportwagenbedrag bij gewone verzekering
+        data.TransportInsuranceCost = 25m;
+        var (state, player) = CreateEventCardSetup(data, null, Choice("car_accident_traffic_jam"));
+
+        var result = state.CheckEventCardsInputAndTotal4(data, player);
+
+        Assert.Contains("calc_p2_event1", result.InvalidFields);
+    }
+
+    [Theory]
+    // zonder verzekering -> bedrag van optie "NO"
+    [InlineData("house_on_fire", 0, 0, 0, 20000)]
+    [InlineData("storm_damage_roof", 0, 0, 0, 2500)]
+    [InlineData("storm_damage_trampoline", 0, 0, 0, 150)]
+    [InlineData("hospital_treatment", 0, 0, 0, 3000)]
+    // met de juiste verzekering -> geen kost
+    [InlineData("house_on_fire", 20, 0, 0, 0)]
+    [InlineData("storm_damage_roof", 20, 0, 0, 0)]
+    [InlineData("storm_damage_trampoline", 0, 10, 0, 0)]
+    [InlineData("hospital_treatment", 0, 0, 15, 0)]
+    public void GivenInsuranceCard_WhenCheckingEventCards_ThenEventIsValid(
+        string cardId, int fire, int family, int hospital, int impact)
+    {
+        var data = EventData(impact);
+        data.FireInsuranceCost = fire;
+        data.FamilyInsuranceCost = family;
+        data.HospitalisationInsuranceCost = hospital;
+        var (state, player) = CreateEventCardSetup(data, null, Choice(cardId));
+
+        var result = state.CheckEventCardsInputAndTotal4(data, player);
+
+        Assert.DoesNotContain("calc_p2_event1", result.InvalidFields);
+    }
+
+    [Theory]
+    [InlineData("house_on_fire", 0, 0, 0, 19999)]          // fout bedrag zonder verzekering
+    [InlineData("hospital_treatment", 0, 0, 0, 2999)]      // fout bedrag zonder verzekering
+    [InlineData("house_on_fire", 20, 0, 0, 20000)]         // verzekerd maar toch kost ingevuld
+    [InlineData("storm_damage_trampoline", 20, 0, 0, 0)]   // brandverzekering dekt trampoline niet
+    
+    public void GivenInsuranceCardWithWrongImpact_WhenCheckingEventCards_ThenEvent1IsInvalid(
+        string cardId, int fire, int family, int hospital, int impact)
+    {
+        var data = EventData(impact);
+        data.FireInsuranceCost = fire;
+        data.FamilyInsuranceCost = family;
+        data.HospitalisationInsuranceCost = hospital;
+        var (state, player) = CreateEventCardSetup(data, null, Choice(cardId));
+
+        var result = state.CheckEventCardsInputAndTotal4(data, player);
+
+        Assert.Contains("calc_p2_event1", result.InvalidFields);
+    }
+
+    private static Dossier DossierWithEducation(int filledSlots)
+    {
+        var dossier = CreateDossier(partnerWage: 1000m, partnerSavings: 5000m, children: 1);
+        dossier.Character.StudentPhase.Options.Add(new StudentPhaseOption { Id = "education", FilledSlots = filledSlots });
+        return dossier;
+    }
+
+    [Theory]
+    [InlineData(1000)]
+    [InlineData(-1000)]
+    public void GivenDivorceWithPartnerSalary_WhenCheckingEventCards_ThenEventIsValid(int impact)
+    {
+        var data = EventData(impact);
+        var (state, player) = CreateEventCardSetup(data, null, Choice("divorce"));
+
+        var result = state.CheckEventCardsInputAndTotal4(data, player);
+
+        Assert.DoesNotContain("calc_p2_event1", result.InvalidFields);
+    }
+
+    [Fact]
+    public void GivenDivorceWithWrongAmount_WhenCheckingEventCards_ThenEvent1IsInvalid()
+    {
+        var data = EventData(999m);
+        var (state, player) = CreateEventCardSetup(data, null, Choice("divorce"));
+
+        var result = state.CheckEventCardsInputAndTotal4(data, player);
+
+        Assert.Contains("calc_p2_event1", result.InvalidFields);
+    }
+
+    [Theory]
+    [InlineData(1000, 1800)] // speler + partner + 1 kind = 3 personen
+    [InlineData(0, 1200)]    // partner zonder loon telt niet mee = 2 personen
+    public void GivenHoliday_WhenCheckingEventCards_ThenCostIsMultipliedByPersons(int partnerSalary, int impact)
+    {
+        var data = EventData(impact);
+        data.NetSalaryPartner = partnerSalary;
+        var (state, player) = CreateEventCardSetup(data, null, Choice("holiday", "a"));
+
+        var result = state.CheckEventCardsInputAndTotal4(data, player);
+
+        Assert.DoesNotContain("calc_p2_event1", result.InvalidFields);
+    }
+
+    [Fact]
+    public void GivenHolidayForOnePerson_WhenCheckingEventCards_ThenEvent1IsInvalid()
+    {
+        var data = EventData(600m); // vergeten te vermenigvuldigen
+        var (state, player) = CreateEventCardSetup(data, null, Choice("holiday", "a"));
+
+        var result = state.CheckEventCardsInputAndTotal4(data, player);
+
+        Assert.Contains("calc_p2_event1", result.InvalidFields);
+    }
+
+    [Theory]
+    [InlineData("buy_1", 1200)]
+    [InlineData("rent_1", 0)]
+    public void GivenLeakingRoof_WhenCheckingEventCards_ThenOnlyOwnerPays(string houseId, int impact)
+    {
+        _memory.Setup(m => m.GetHouseId(700m)).Returns(houseId);
+        var data = EventData(impact);
+        var (state, player) = CreateEventCardSetup(data, null, Choice("leaking_roof"));
+
+        var result = state.CheckEventCardsInputAndTotal4(data, player);
+
+        Assert.DoesNotContain("calc_p2_event1", result.InvalidFields);
+    }
+
+    [Theory]
+    [InlineData("buy_1", 0)]     // eigenaar maar niets ingevuld
+    [InlineData("rent_1", 1200)] // huurder maar toch kost ingevuld
+    public void GivenLeakingRoofWithWrongImpact_WhenCheckingEventCards_ThenEvent1IsInvalid(string houseId, int impact)
+    {
+        _memory.Setup(m => m.GetHouseId(700m)).Returns(houseId);
+        var data = EventData(impact);
+        var (state, player) = CreateEventCardSetup(data, null, Choice("leaking_roof"));
+
+        var result = state.CheckEventCardsInputAndTotal4(data, player);
+
+        Assert.Contains("calc_p2_event1", result.InvalidFields);
+    }
+
+    [Theory]
+    [InlineData(0, 1000)]
+    [InlineData(1, 2000)]
+    [InlineData(2, 3000)]
+    [InlineData(3, 4000)]
+    public void GivenDismissal_WhenCheckingEventCards_ThenOptionMatchesEducation(int slots, int impact)
+    {
+        var data = EventData(impact);
+        var (state, player) = CreateEventCardSetup(data, DossierWithEducation(slots), Choice("dismissal"));
+
+        var result = state.CheckEventCardsInputAndTotal4(data, player);
+
+        Assert.DoesNotContain("calc_p2_event1", result.InvalidFields);
+    }
+
+    [Fact]
+    public void GivenDismissalWithWrongEducationAmount_WhenCheckingEventCards_ThenEvent1IsInvalid()
+    {
+        var data = EventData(2000m); // bedrag voor 1 slot, maar speler heeft er 2
+        var (state, player) = CreateEventCardSetup(data, DossierWithEducation(2), Choice("dismissal"));
+
+        var result = state.CheckEventCardsInputAndTotal4(data, player);
+
+        Assert.Contains("calc_p2_event1", result.InvalidFields);
+    }
+
+    [Theory]
+    [InlineData(0, 0)]
+    [InlineData(1, 1000)]
+    [InlineData(2, 2000)]
+    [InlineData(3, 3000)]
+    public void GivenPromotion_WhenCheckingEventCards_ThenOptionMatchesEducation(int slots, int impact)
+    {
+        var data = EventData(impact);
+        var (state, player) = CreateEventCardSetup(data, DossierWithEducation(slots), Choice("promotion"));
+
+        var result = state.CheckEventCardsInputAndTotal4(data, player);
+
+        Assert.DoesNotContain("calc_p2_event1", result.InvalidFields);
+    }
+
+    [Theory]
+    [InlineData(0, 500)]  // geen studie maar toch promotie ingevuld
+    [InlineData(2, 1000)] // bedrag van 1 slot bij 2 slots
+    public void GivenPromotionWithWrongImpact_WhenCheckingEventCards_ThenEvent1IsInvalid(int slots, int impact)
+    {
+        var data = EventData(impact);
+        var (state, player) = CreateEventCardSetup(data, DossierWithEducation(slots), Choice("promotion"));
+
+        var result = state.CheckEventCardsInputAndTotal4(data, player);
+
+        Assert.Contains("calc_p2_event1", result.InvalidFields);
+    }
+
+    // TODO: illness_work heeft nog geen logica, elk bedrag wordt aanvaard
+    [Fact]
+    public void GivenIllnessWork_WhenCheckingEventCards_ThenAnyImpactIsCurrentlyAccepted()
+    {
+        var data = EventData(12345m);
+        var (state, player) = CreateEventCardSetup(data, null, Choice("illness_work"));
+
+        var result = state.CheckEventCardsInputAndTotal4(data, player);
+
+        Assert.DoesNotContain("calc_p2_event1", result.InvalidFields);
+    }
+
+    // TODO: zonder "education"-optie wordt het ontslagbedrag niet gecontroleerd
+    [Fact]
+    public void GivenDismissalWithoutEducationOption_WhenCheckingEventCards_ThenAnyImpactIsCurrentlyAccepted()
+    {
+        var data = EventData(12345m);
+        var (state, player) = CreateEventCardSetup(data, null, Choice("dismissal"));
+
+        var result = state.CheckEventCardsInputAndTotal4(data, player);
+
+        Assert.DoesNotContain("calc_p2_event1", result.InvalidFields);
+    }
+
+        [Fact]
+    public void GivenThreeCards_WhenCheckingEventCards_ThenTotal4IsSumOfImpacts()
+    {
+        // -5000 (kost) + 2000 (erfenis) - 250 (kost) = -3250
+        var data = EventData(5000m, 2000m, 250m);
+        data.Total4 = -3250m;
+        var (state, player) = CreateEventCardSetup(data, null,
+            Choice("second_car"), Choice("inheritance", "small"), Choice("housing_costs_1", "a"));
+
+        var result = state.CheckEventCardsInputAndTotal4(data, player);
+
+        Assert.True(result.IsValid);
+    }
+
+    [Fact]
+    public void GivenTotal3AndRemainingBudget_WhenCheckingEventCards_ThenTheyAreAddedToTotal4()
+    {
+        // 100 + 1000 - 5000 = -3900
+        var data = EventData(5000m);
+        data.Total3 = 100m;
+        data.CalcRemainingBudgetWholePhase2 = 1000m;
+        data.Total4 = -3900m;
+        var (state, player) = CreateEventCardSetup(data, null, Choice("second_car"));
+
+        var result = state.CheckEventCardsInputAndTotal4(data, player);
+
+        Assert.True(result.IsValid);
+    }
+
+    [Fact]
+    public void GivenCostEnteredAsNegative_WhenCheckingEventCards_ThenTotal4StillSubtractsIt()
+    {
+        var data = EventData(-5000m);
+        data.Total4 = -5000m;
+        var (state, player) = CreateEventCardSetup(data, null, Choice("second_car"));
+
+        var result = state.CheckEventCardsInputAndTotal4(data, player);
+
+        Assert.True(result.IsValid);
+    }
+
+    [Fact]
+    public void GivenWrongTotal4_WhenCheckingEventCards_ThenTotal4IsInvalid()
+    {
+        var data = EventData(5000m);
+        data.Total4 = 0m;
+        var (state, player) = CreateEventCardSetup(data, null, Choice("second_car"));
+
+        var result = state.CheckEventCardsInputAndTotal4(data, player);
+
+        Assert.Contains("calc_p2_total4", result.InvalidFields);
+        Assert.DoesNotContain("calc_p2_event1", result.InvalidFields);
+    }
+
+    [Fact]
+    public void GivenWrongSecondCard_WhenCheckingEventCards_ThenOnlyEvent2IsInvalid()
+    {
+        var data = EventData(5000m, 999m);
+        var (state, player) = CreateEventCardSetup(data, null,
+            Choice("second_car"), Choice("housing_costs_1", "a"));
+
+        var result = state.CheckEventCardsInputAndTotal4(data, player);
+
+        Assert.DoesNotContain("calc_p2_event1", result.InvalidFields);
+        Assert.Contains("calc_p2_event2", result.InvalidFields);
+    }
+
+    [Fact]
+    public void GivenNoChosenEventCards_WhenCheckingEventCards_ThenThrows()
+    {
+        var data = EventData();
+        var (state, player) = CreateEventCardSetup(data);
+
+        Assert.Throws<Exception>(() => state.CheckEventCardsInputAndTotal4(data, player));
+    }
+
+    [Fact]
+    public void GivenCardMissingFromData_WhenCheckingEventCards_ThenThrows()
+    {
+        var data = EventData(5000m);
+        var (state, player) = CreateEventCardSetup(data, null, Choice("second_car"));
+        _memory.Setup(m => m.GetAllEventCards()).Returns([]);
+
+        Assert.Throws<Exception>(() => state.CheckEventCardsInputAndTotal4(data, player));
+    }
+
+[Fact]
+    public void GivenNewJobMissingFromData_WhenCheckingEventCards_ThenThrows()
+    {
+        var data = EventData(500m);
+        var (state, player) = CreateEventCardSetup(data, null, Choice("new_job", "a"));
+        _memory.Setup(m => m.GetAllEventCards()).Returns([]);
+
+        Assert.Throws<Exception>(() => state.CheckEventCardsInputAndTotal4(data, player));
+    }
+
+
 }

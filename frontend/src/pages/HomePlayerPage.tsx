@@ -5,6 +5,8 @@ import { useNavigate } from "react-router-dom";
 import type { JoinTableRequest } from "../types/Requests";
 import type { JoinTableResponse } from "../types/Reponses";
 import InputField from "../components/InputField";
+import { getSession, type Session } from "../api/dossierApi";
+
 
 const HomePlayerPage = () => {
   console.log("does the deployment script actually work?");
@@ -20,16 +22,7 @@ const HomePlayerPage = () => {
     return savedTable ? parseInt(savedTable, 10) : 1;
   });
 
-  const [activeSession, setActiveSession] = useState<{
-    room: string;
-    id: string;
-  } | null>(() => {
-    const savedRoom = localStorage.getItem("roomCode");
-    const savedPlayerId = localStorage.getItem("playerId");
-    return savedRoom && savedPlayerId
-      ? { room: savedRoom, id: savedPlayerId }
-      : null;
-  });
+  const [activeSession, setActiveSession] = useState<Session | null>(getSession);
 
   const connection = useSignalR();
   const navigate = useNavigate();
@@ -39,10 +32,10 @@ const HomePlayerPage = () => {
 
     const requestData: JoinTableRequest = isRejoining
       ? {
-          roomCode: activeSession?.room || "",
+          roomCode: activeSession?.roomCode || "",
           tableNumber: parseInt(localStorage.getItem("tableNumber") || "1", 10),
           nickName: localStorage.getItem("nickName") || "",
-          playerId: activeSession?.id,
+          playerId: activeSession?.playerId,
         }
       : {
           roomCode: roomCode || "",
@@ -80,8 +73,8 @@ const HomePlayerPage = () => {
     if (connection && activeSession) {
       try {
         await connection.invoke("LeaveTable", {
-          roomCode: activeSession.room,
-          playerId: activeSession.id,
+          roomCode: activeSession.roomCode,
+          playerId: activeSession.playerId,
         });
       } catch (error) {
         console.error("Kon tafel niet verlaten:", error);
@@ -110,7 +103,7 @@ const HomePlayerPage = () => {
             <p className="text-teal-600 font-bold mb-4">
               {t("home_player_page.active_session")}{" "}
               <span className="text-xl bg-teal-100 px-3 py-1 rounded">
-                {activeSession.room}
+                {activeSession.roomCode}
               </span>
             </p>
 
