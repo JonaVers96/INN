@@ -15,6 +15,7 @@ import StudentPhaseOverlay from "../components/gamePage/StudentPhaseOverlay";
 import LivingSituationOverlay from "../components/gamePage/LivingSituationOverlay";
 import EventCardsOverlay from "../components/gamePage/EventCardOverlay";
 import ModalOverlay from "../components/gamePage/ModalOverlay";
+import { useEffect } from "react";
 
 const GamePage = () => {
   const { character } = useCharacter();
@@ -26,6 +27,16 @@ const GamePage = () => {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isStudentPhaseOpen, setIsStudentPhaseOpen] = useState(false);
   const [isLivingSituationOpen, setIsLivingSituationOpen] = useState(false);
+
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload); // koppelt de functie aan het event dat afgaat bij refresh, tab sluiten of wegnavigeren
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload); // cleanup: haalt de listener weg als de component verdwijnt, zodat ze zich niet opstapelen
+  }, []); // Geeft standaard popup bij refresh
+
 
   return (
     <div className="h-screen flex overflow-hidden">
