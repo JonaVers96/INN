@@ -67,7 +67,7 @@ const InsuranceContent = () => {
                   className="p-2 font-bold border-r-2 border-white w-1/4"
                   style={{ backgroundColor: "#F9BC2F" }}
                 >
-                  {t("general_insurance.options.costs")}
+                  {t("general_insurance.labels.costs")}
                 </td>
                 <td className="p-2" style={{ backgroundColor: "#FDF5D6" }}>
                   {/* 3. FIX: We casten de JSON output expliciet, zodat TypeScript niet in de war raakt over de missende keys in je JSON data */}
