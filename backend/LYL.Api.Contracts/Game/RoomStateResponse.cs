@@ -19,4 +19,6 @@ public class PlayerStateDto
     public int TableNumber { get; set; }
     public bool IsOffline { get; set; }
     public string CurrentPhase { get; set; }
+
+    public PlayerAmountsDto Amounts { get; set; } = new();
 }
