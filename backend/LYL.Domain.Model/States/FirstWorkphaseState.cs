@@ -172,4 +172,10 @@ public class FirstWorkphaseState(Dossier dossier, IMemoryAccessService service) 
         var culture = new CultureInfo("nl-BE"); //Hardcoded, assuming the culture won't change
         return decimal.Parse(parentalSupport, NumberStyles.Currency, culture);
     }
-}
+
+    public override void AcceptWithoutCheck(DossierData data)
+    {
+        Dossier.firstWorkphaseDossier = data;
+        isChecked = true;
+    }
+} 

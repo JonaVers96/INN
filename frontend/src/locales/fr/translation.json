@@ -212,7 +212,11 @@
     "pin_error_generic": "Une erreur s'est produite. Veuillez réessayer.",
     "close_room_button" : "fermer la pièce",
     "add_table_button": "Ajouter une table",
-    "adding_table": "Ajout de la table..."
+    "adding_table": "Ajout de la table...",
+    "settings": "Paramètres",
+    "close_settings": "Fermer",
+    "skip_checks": "Désactiver les contrôles",
+    "skip_checks_info": "Les joueurs peuvent saisir tous les chiffres sans qu’ils soient vérifiés."
   },
   "phases": {
     "offline": "Hors ligne",

@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.SignalR;
 
 namespace LYL.Api.Hubs;
 
-public class GameHub(IGameSessionService sessionService) : Hub
+public class GameHub(IRoomService roomService) : Hub
 {
     //TODO Check with team how we want to keep this, for testing purposes now IM
     private static readonly ConcurrentDictionary<string, (string PlayerId, string RoomCode)> connections = new();
@@ -20,7 +20,7 @@ public class GameHub(IGameSessionService sessionService) : Hub
     {
         try
         {
-            var response = await sessionService.JoinTableAsync(request);
+            var response = await roomService.JoinTableAsync(request);
             await Groups.AddToGroupAsync(Context.ConnectionId, request.RoomCode);
             await Clients.Group(request.RoomCode).SendAsync("PlayerJoined", response);
             connections[Context.ConnectionId] = (response.PlayerId.ToString(), request.RoomCode);
@@ -37,7 +37,7 @@ public class GameHub(IGameSessionService sessionService) : Hub
     {
         try
         {
-            var response = await sessionService.LeaveTableAsync(request);
+            var response = await roomService.LeaveTableAsync(request);
             await Clients.Group(request.RoomCode).SendAsync("PlayerLeft", response);
             await Groups.RemoveFromGroupAsync(Context.ConnectionId, request.RoomCode);
             connections.TryRemove(Context.ConnectionId, out var value);
