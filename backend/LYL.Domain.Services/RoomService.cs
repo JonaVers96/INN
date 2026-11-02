@@ -185,6 +185,7 @@ public class RoomService(
         {
             RoomCode = room.RoomCode,
             IsActive = room.IsActive,
+            Language = room.Host.Language,
             TableCount = room.Tables.Count,
             Players = new List<PlayerStateDto>()
         };

@@ -4,6 +4,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useSignalR } from "../hooks/useSignalR";
 import { useNavigationBlocker } from "../hooks/useNavigationBlocker";
 import NavigationBlockedModal from "../components/NavigationBlockedModal";
+import { usePlayerLanguage } from "../hooks/usePlayerLanguage";
 
 const WaitingRoomPage = () => {
   const { t } = useTranslation();
@@ -11,6 +12,7 @@ const WaitingRoomPage = () => {
   const connection = useSignalR();
 
   const { isBlocked, dismiss } = useNavigationBlocker();
+  usePlayerLanguage();
 
   const { roomCode } = useParams<{ roomCode: string }>();
   const playerId = localStorage.getItem("playerId");
