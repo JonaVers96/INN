@@ -28,8 +28,10 @@ import {
 } from "./inputSheet/inputSheetConfig";
 const InputSheet = ({
   onPhase2Complete,
+  onGameComplete,
 }: {
   onPhase2Complete?: () => void;
+  onGameComplete?: () => void;
 }) => {
   const { t } = useTranslation("input_sheet");
 
@@ -55,6 +57,7 @@ const InputSheet = ({
       setStep,
       onPhase1Valid: () => setShowPartnerWheel(true),
       onPhase2Complete,
+      onGameComplete,
     });
 
   const formik = useFormik<

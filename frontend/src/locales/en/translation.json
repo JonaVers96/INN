@@ -1,4 +1,7 @@
 {
+  "endScreen": {
+    "title": "Game complete"
+  },
   "studentPhase": {
     "title": "STUDENT PHASE",
     "character_label": "CHARACTER",

@@ -15,6 +15,7 @@ import StudentPhaseOverlay from "../components/gamePage/StudentPhaseOverlay";
 import LivingSituationOverlay from "../components/gamePage/LivingSituationOverlay";
 import EventCardsOverlay from "../components/gamePage/EventCardOverlay";
 import ModalOverlay from "../components/gamePage/ModalOverlay";
+import EndScreen from "../components/gamePage/EndScreen";
 
 const GamePage = () => {
   const { character } = useCharacter();
@@ -26,6 +27,7 @@ const GamePage = () => {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isStudentPhaseOpen, setIsStudentPhaseOpen] = useState(false);
   const [isLivingSituationOpen, setIsLivingSituationOpen] = useState(false);
+  const [isGameComplete, setIsGameComplete] = useState(false);
 
   return (
     <div className="h-screen flex overflow-hidden">
@@ -192,7 +194,10 @@ const GamePage = () => {
             <span className="text:#056b67 text-10xl">◀</span>
           </div>
         )}
-        <InputSheet onPhase2Complete={eventCards.fetchAndStartEventCards} />
+        <InputSheet
+          onPhase2Complete={eventCards.fetchAndStartEventCards}
+          onGameComplete={() => setIsGameComplete(true)}
+        />
       </div>
 
       {isProfileOpen && (
@@ -210,6 +215,7 @@ const GamePage = () => {
       {eventCards.showEventCards && (
         <EventCardsOverlay eventCards={eventCards} />
       )}
+      {isGameComplete && <EndScreen />}
     </div>
   );
 };

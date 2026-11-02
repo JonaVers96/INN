@@ -1,4 +1,7 @@
 {
+  "endScreen": {
+    "title": "Einde van het spel"
+  },
   "studentPhase": {
     "title": "STUDENTENFASE",
     "character_label": "PERSONAGE",

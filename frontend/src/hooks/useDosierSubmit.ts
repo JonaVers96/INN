@@ -21,11 +21,13 @@ export const useDossierSubmit = ({
   setStep,
   onPhase1Valid,
   onPhase2Complete,
+  onGameComplete,
 }: {
   step: FlowStep;
   setStep: (step: FlowStep) => void;
   onPhase1Valid: () => void;
   onPhase2Complete?: () => void;
+  onGameComplete?: () => void;
 }) => {
   const { t } = useTranslation("input_sheet");
 
@@ -67,6 +69,7 @@ export const useDossierSubmit = ({
           break;
         case "PHASE2_CALC":
           setStep("DONE");
+          onGameComplete?.();
           break;
       }
     } catch (error) {

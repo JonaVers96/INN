@@ -1,4 +1,7 @@
 {
+  "endScreen": {
+    "title": "Fin de la partie"
+  },
   "studentPhase": {
     "title": "PÉRIODE ÉTUDIANT",
     "character_label": "PROFIL",
