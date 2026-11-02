@@ -217,7 +217,9 @@
     "settings": "Instellingen",
     "close_settings": "Sluiten",
     "skip_checks": "Controles uitschakelen",
-    "skip_checks_info": "Spelers kunnen alle getallen invullen zonder dat ze gecontroleerd worden."
+    "skip_checks_info": "Spelers kunnen alle getallen invullen zonder dat ze gecontroleerd worden.",
+    "language": "Taal",
+    "language_info": "Kies de taal voor het spel."
   },
   "phases": {
     "offline": "Offline",
