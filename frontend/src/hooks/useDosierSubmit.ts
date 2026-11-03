@@ -5,7 +5,7 @@ import {
   completeFirstWorkPhase,
   type DossierCheckEndpoint,
 } from "../api/dossierApi";
-import type { FlowStep } from "../types/inputsheet";
+import type { BudgetFormValues, FlowStep } from "../types/inputsheet";
 
 // Welk endpoint bij welke stap hoort; in DONE valt er niets meer te checken
 const CHECK_ENDPOINT: Record<FlowStep, DossierCheckEndpoint | null> = {
@@ -27,7 +27,7 @@ export const useDossierSubmit = ({
   setStep: (step: FlowStep) => void;
   onPhase1Valid: () => void;
   onPhase2Complete?: () => void;
-  onGameComplete?: () => void;
+  onGameComplete?: (values: BudgetFormValues) => void;
 }) => {
   const { t } = useTranslation("input_sheet");
 
@@ -38,7 +38,7 @@ export const useDossierSubmit = ({
   const clearField = (name: string) =>
     setInvalidFields((prev) => prev.filter((f) => f !== name));
 
-  const onSubmit = async (values: object) => {
+  const onSubmit = async (values: BudgetFormValues) => {
     const endpoint = CHECK_ENDPOINT[step];
     if (!endpoint) return;
 
@@ -69,7 +69,7 @@ export const useDossierSubmit = ({
           break;
         case "PHASE2_CALC":
           setStep("DONE");
-          onGameComplete?.();
+          onGameComplete?.(values);
           break;
       }
     } catch (error) {

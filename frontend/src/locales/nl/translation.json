@@ -1,6 +1,13 @@
 {
   "endScreen": {
-    "title": "Einde van het spel"
+    "title": "Einde van het spel",
+    "stats": {
+      "finalTotal": "Eindtotaal",
+      "allocation": "Verdeling van je geld",
+      "budgetChange": "Verandering in maandbudget",
+      "eventImpact": "Totale impact van gebeurteniskaarten",
+      "event": "Gebeurtenis {{number}}"
+    }
   },
   "studentPhase": {
     "title": "STUDENTENFASE",

@@ -16,6 +16,7 @@ import LivingSituationOverlay from "../components/gamePage/LivingSituationOverla
 import EventCardsOverlay from "../components/gamePage/EventCardOverlay";
 import ModalOverlay from "../components/gamePage/ModalOverlay";
 import EndScreen from "../components/gamePage/EndScreen";
+import type { BudgetFormValues } from "../types/inputsheet";
 
 const GamePage = () => {
   const { character } = useCharacter();
@@ -27,7 +28,8 @@ const GamePage = () => {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isStudentPhaseOpen, setIsStudentPhaseOpen] = useState(false);
   const [isLivingSituationOpen, setIsLivingSituationOpen] = useState(false);
-  const [isGameComplete, setIsGameComplete] = useState(false);
+  const [completedValues, setCompletedValues] =
+    useState<BudgetFormValues | null>(null);
 
   return (
     <div className="h-screen flex overflow-hidden">
@@ -196,7 +198,7 @@ const GamePage = () => {
         )}
         <InputSheet
           onPhase2Complete={eventCards.fetchAndStartEventCards}
-          onGameComplete={() => setIsGameComplete(true)}
+          onGameComplete={setCompletedValues}
         />
       </div>
 
@@ -215,7 +217,7 @@ const GamePage = () => {
       {eventCards.showEventCards && (
         <EventCardsOverlay eventCards={eventCards} />
       )}
-      {isGameComplete && <EndScreen />}
+      {completedValues && <EndScreen values={completedValues} />}
     </div>
   );
 };

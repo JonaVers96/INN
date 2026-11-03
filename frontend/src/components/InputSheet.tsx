@@ -31,7 +31,7 @@ const InputSheet = ({
   onGameComplete,
 }: {
   onPhase2Complete?: () => void;
-  onGameComplete?: () => void;
+  onGameComplete?: (values: BudgetFormValues) => void;
 }) => {
   const { t } = useTranslation("input_sheet");
 
