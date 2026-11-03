@@ -197,6 +197,10 @@
   },
   "supervisor_page": {
     "title": "Tableau de bord",
+    "amount_monthly": "Par mois",
+    "amount_after": "Après la phase",
+    "phase_1_short": "Phase 1",
+    "phase_2_short": "Phase 2",
     "create_room_button": "CRÉER UNE SALLE",
     "room_code_label": "VOTRE CODE DE SALLE",
     "in_progress": "JEU EN COURS",

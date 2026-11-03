@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import type { Player } from "../types/Models";
 
 const PlayerListItem: React.FC<{ player: Player }> = ({ player }) => {
-  const { t } = useTranslation();
+  const { t,i18n } = useTranslation();
 
   // Helper functie om de fase visueel aantrekkelijk te maken
   const getPhaseDisplay = (phase?: string) => {
@@ -48,6 +48,15 @@ const PlayerListItem: React.FC<{ player: Player }> = ({ player }) => {
     }
   };
 
+  const formatAmount = (value?: number | null) =>
+  value == null
+    ? "–"
+    : new Intl.NumberFormat(i18n.language, {
+        style: "currency",
+        currency: "EUR",
+        maximumFractionDigits: 0,
+      }).format(value);
+
   const phaseInfo = getPhaseDisplay(player.currentPhase);
 
   return (
@@ -78,6 +87,23 @@ const PlayerListItem: React.FC<{ player: Player }> = ({ player }) => {
           >
             {phaseInfo.label}
           </span>
+                    <div className="mt-2 grid grid-cols-3 gap-x-3 gap-y-0.5 text-xs text-slate-500">
+            <span />
+            <span className="font-bold">
+              {t("supervisor_page.amount_monthly", "Per maand")}
+            </span>
+            <span className="font-bold">
+              {t("supervisor_page.amount_after", "Na fase")}
+            </span>
+
+            <span className="font-bold">{t("supervisor_page.phase_1_short", "Fase 1")}</span>
+            <span>{formatAmount(player.amounts?.monthlyBudgetPhase1)}</span>
+            <span>{formatAmount(player.amounts?.balanceAfterPhase1)}</span>
+
+            <span className="font-bold">{t("supervisor_page.phase_2_short", "Fase 2")}</span>
+            <span>{formatAmount(player.amounts?.monthlyBudgetPhase2)}</span>
+            <span>{formatAmount(player.amounts?.balanceAfterPhase2)}</span>
+          </div>
         </div>
       </div>
 

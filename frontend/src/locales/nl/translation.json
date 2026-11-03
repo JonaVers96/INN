@@ -198,6 +198,10 @@
   },
   "supervisor_page": {
     "title": "Dashboard",
+    "amount_monthly": "Per maand",
+    "amount_after": "Na fase",
+    "phase_1_short": "Fase 1",
+    "phase_2_short": "Fase 2",
     "create_room_button": "MAAK EEN KAMER AAN",
     "room_code_label": "JOUW KAMER CODE",
     "in_progress": "SPEL IS BEZIG",
