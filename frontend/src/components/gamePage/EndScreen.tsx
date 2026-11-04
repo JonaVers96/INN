@@ -20,31 +20,33 @@ const EndScreen = ({ values }: Props) => {
     maximumFractionDigits: 2,
     signDisplay: "always",
   });
-  const formatCurrency = (value: string, showSign = false) => {
-    if (value.trim() === "") return "—";
+  const toNumber = (value: unknown): number | null => {
+    if (typeof value === "number") {
+      return Number.isFinite(value) ? value : null;
+    }
+    if (typeof value !== "string" || value.trim() === "") return null;
     const number = Number(value);
-    if (!Number.isFinite(number)) return "—";
+    return Number.isFinite(number) ? number : null;
+  };
+  const formatCurrency = (value: unknown, showSign = false) => {
+    const number = toNumber(value);
+    if (number === null) return "—";
     return (showSign ? signedCurrencyFormatter : currencyFormatter).format(number);
   };
-  const phase1Budget = Number(values.remaining_budget_phase1);
-  const phase2Budget = Number(values.remaining_budget_phase2);
+  const phase1Budget = toNumber(values.remaining_budget_phase1);
+  const phase2Budget = toNumber(values.remaining_budget_phase2);
   const budgetChange =
-    values.remaining_budget_phase1.trim() !== "" &&
-    values.remaining_budget_phase2.trim() !== "" &&
-    Number.isFinite(phase1Budget) &&
-    Number.isFinite(phase2Budget)
-      ? String(phase2Budget - phase1Budget)
-      : "";
+    phase1Budget !== null && phase2Budget !== null
+      ? phase2Budget - phase1Budget
+      : null;
   const eventImpacts = [
     values.calc_p2_event1,
     values.calc_p2_event2,
     values.calc_p2_event3,
-  ];
-  const totalEventImpact =
-    eventImpacts.every((impact) => impact.trim() !== "") &&
-    eventImpacts.every((impact) => Number.isFinite(Number(impact)))
-      ? String(eventImpacts.reduce((total, impact) => total + Number(impact), 0))
-      : "";
+  ].map(toNumber);
+  const totalEventImpact = eventImpacts.every((impact) => impact !== null)
+    ? eventImpacts.reduce<number>((total, impact) => total + (impact ?? 0), 0)
+    : null;
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm">
