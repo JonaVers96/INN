@@ -3,6 +3,7 @@ using LYL.Domain.Model;
 using LYL.Domain.Model.Interfaces;
 using LYL.Domain.Services.Interfaces;
 using LYL.Persistence.Interfaces;
+using LYL.Domain.Services.Mapping;
 
 namespace LYL.Domain.Services;
 
@@ -200,7 +201,8 @@ public class RoomService(
                     NickName = player.Nickname,
                     TableNumber = table.TableNumber,
                     IsOffline = false,
-                    CurrentPhase = player.CurrentPhase
+                    CurrentPhase = player.CurrentPhase,
+                    Amounts = player.Dossier.AsAmounts()
                 });
             }
         }

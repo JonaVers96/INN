@@ -13,7 +13,7 @@ public class GameHub(IRoomService roomService) : Hub
 
     public async Task SubscribeToRoom(string roomCode)
     {
-        await Groups.AddToGroupAsync(Context.ConnectionId, roomCode);
+        await Groups.AddToGroupAsync(Context.ConnectionId, GameGroups.Supervisor(roomCode));
     }
 
     public async Task<JoinTableResponse> JoinTable(JoinTableRequest request)

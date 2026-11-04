@@ -118,13 +118,14 @@ public class GameController(IPhaseService PhaseService, IEventCardService eventC
     public async Task<ActionResult<DossierCheckResult>> CheckPhaseInputs(string roomId, string playerId,
         [FromBody] DossierCheckRequest request)
     {
-        
+
         if (!Guid.TryParse(playerId, out var playerGuid))
             return BadRequest(new { message = "Ongeldig speler ID." });
 
         try
         {
             var result = await PhaseService.CheckPhaseInputsCalcsAsync(roomId, playerGuid, request);
+            await NotifySupervisorAmountsAsync(roomId, playerGuid);
             return Ok(result);
         }
         catch (Exception ex)
@@ -160,47 +161,49 @@ public class GameController(IPhaseService PhaseService, IEventCardService eventC
     public async Task<ActionResult<DossierCheckResult>> CheckBalanceMonthInputs(string roomId, string playerId,
         [FromBody] DossierCheckRequest request)
     {
-        
-         if (!Guid.TryParse(playerId, out var playerGuid))
-             return BadRequest(new { message = "Ongeldig speler ID." });
 
-         try
-         {
-             var result = await PhaseService.CheckPhaseInputsMonthlyAsync(roomId, playerGuid, request);
-             return Ok(result);
-         }
-         catch (Exception ex)
-         {
-             return BadRequest(new { message = ex.Message });
-         }
-        
-    }
-    
-    [HttpPost("{roomId}/player/{playerId}/saveEventCardsChoices")]
-    public async Task<ActionResult> SaveEventCardsInput(string roomId, string playerId, [FromBody]EventCardSaveRequestContract request) 
-    {
-       if (!Guid.TryParse(playerId, out var playerGuid))
+        if (!Guid.TryParse(playerId, out var playerGuid))
             return BadRequest(new { message = "Ongeldig speler ID." });
-       
-            try
-            {
-                await eventCardService.SaveEventCardsInput(roomId, playerGuid, request); 
-                return Ok();
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new { message = ex.Message });
-            }
-        
+
+        try
+        {
+            var result = await PhaseService.CheckPhaseInputsMonthlyAsync(roomId, playerGuid, request);
+            await NotifySupervisorAmountsAsync(roomId, playerGuid);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
 
     }
+
+    [HttpPost("{roomId}/player/{playerId}/saveEventCardsChoices")]
+    public async Task<ActionResult> SaveEventCardsInput(string roomId, string playerId, [FromBody] EventCardSaveRequestContract request)
+    {
+        if (!Guid.TryParse(playerId, out var playerGuid))
+            return BadRequest(new { message = "Ongeldig speler ID." });
+
+        try
+        {
+            await eventCardService.SaveEventCardsInput(roomId, playerGuid, request);
+            return Ok();
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+
+
+    }
+
 
     [HttpGet("{roomId}/player/{playerId}/getEventCards")]
     public async Task<IActionResult> GetEventCards(string roomId, string playerId)
     {
-       if (!Guid.TryParse(playerId, out var playerGuid))
-           return BadRequest(new { message = "Ongeldig speler ID." });
-       
+        if (!Guid.TryParse(playerId, out var playerGuid))
+            return BadRequest(new { message = "Ongeldig speler ID." });
+
         try
         {
             var cards = await eventCardService.GetEventCards();
@@ -208,14 +211,23 @@ public class GameController(IPhaseService PhaseService, IEventCardService eventC
         }
         catch (Exception e)
         {
-           Console.WriteLine(e.Message);
-           return StatusCode(500, new { message = e.Message });
+            Console.WriteLine(e.Message);
+            return StatusCode(500, new { message = e.Message });
         }
-     
-        
+
+
     }
 
-    
-    
-    
+
+    private async Task NotifySupervisorAmountsAsync(string roomId, Guid playerGuid)
+    {
+        var amounts = await PhaseService.GetPlayerAmountsAsync(roomId, playerGuid);
+
+        await hubContext.Clients.Group(GameGroups.Supervisor(roomId)).SendAsync("PlayerAmountsUpdated", new
+        {
+            playerId = playerGuid,
+            amounts
+        });
+    }
+
 }

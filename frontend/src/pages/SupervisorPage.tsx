@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import axios from "axios";
 import { useSignalR } from "../hooks/useSignalR";
 import type { JoinTableResponse, LeaveTableResponse } from "../types/Reponses";
-import type { Player } from "../types/Models";
+import type { Player, PlayerAmounts } from "../types/Models";
 import TableGrid from "../components/TableGrid";
 import { FaBars, FaTimes } from "react-icons/fa";
 
@@ -126,6 +126,17 @@ const SupervisorPage = () => {
       },
     );
 
+        connection.on(
+      "PlayerAmountsUpdated",
+      (data: { playerId: string; amounts: PlayerAmounts }) => {
+        setPlayers((prevPlayers) =>
+          prevPlayers.map((p) =>
+            p.playerId === data.playerId ? { ...p, amounts: data.amounts } : p,
+          ),
+        );
+      },
+    );
+
     connection.on("PlayerDisconnected", (data: { playerId: string }) => {
       setPlayers((prevPlayers) =>
         prevPlayers.map((p) =>
@@ -155,6 +166,7 @@ const SupervisorPage = () => {
       connection.off("PlayerDisconnected");
       connection.off("PlayerReconnected");
       connection.off("PlayerPhaseUpdated");
+      connection.off("PlayerAmountsUpdated");
     };
   }, [connection]);
 
