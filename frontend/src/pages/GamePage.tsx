@@ -15,6 +15,8 @@ import StudentPhaseOverlay from "../components/gamePage/StudentPhaseOverlay";
 import LivingSituationOverlay from "../components/gamePage/LivingSituationOverlay";
 import EventCardsOverlay from "../components/gamePage/EventCardOverlay";
 import ModalOverlay from "../components/gamePage/ModalOverlay";
+import EndScreen from "../components/gamePage/EndScreen";
+import type { BudgetFormValues } from "../types/inputsheet";
 import { useEffect } from "react";
 
 const GamePage = () => {
@@ -27,6 +29,8 @@ const GamePage = () => {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isStudentPhaseOpen, setIsStudentPhaseOpen] = useState(false);
   const [isLivingSituationOpen, setIsLivingSituationOpen] = useState(false);
+  const [completedValues, setCompletedValues] =
+    useState<BudgetFormValues | null>(null);
 
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
@@ -203,7 +207,10 @@ const GamePage = () => {
             <span className="text:#056b67 text-10xl">◀</span>
           </div>
         )}
-        <InputSheet onPhase2Complete={eventCards.fetchAndStartEventCards} />
+        <InputSheet
+          onPhase2Complete={eventCards.fetchAndStartEventCards}
+          onGameComplete={setCompletedValues}
+        />
       </div>
 
       {isProfileOpen && (
@@ -221,6 +228,7 @@ const GamePage = () => {
       {eventCards.showEventCards && (
         <EventCardsOverlay eventCards={eventCards} />
       )}
+      {completedValues && <EndScreen values={completedValues} />}
     </div>
   );
 };

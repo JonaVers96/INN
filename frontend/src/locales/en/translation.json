@@ -1,4 +1,14 @@
 {
+  "endScreen": {
+    "title": "Game complete",
+    "stats": {
+      "finalTotal": "Final total",
+      "allocation": "Where your money ended up",
+      "budgetChange": "Monthly budget change",
+      "eventImpact": "Total event-card impact",
+      "event": "Event {{number}}"
+    }
+  },
   "studentPhase": {
     "title": "STUDENT PHASE",
     "character_label": "CHARACTER",

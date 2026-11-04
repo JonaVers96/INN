@@ -1,4 +1,14 @@
 {
+  "endScreen": {
+    "title": "Fin de la partie",
+    "stats": {
+      "finalTotal": "Total final",
+      "allocation": "Répartition de votre argent",
+      "budgetChange": "Évolution du budget mensuel",
+      "eventImpact": "Impact total des cartes événement",
+      "event": "Événement {{number}}"
+    }
+  },
   "studentPhase": {
     "title": "PÉRIODE ÉTUDIANT",
     "character_label": "PROFIL",
