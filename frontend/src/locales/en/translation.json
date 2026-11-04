@@ -1,4 +1,14 @@
 {
+  "endScreen": {
+    "title": "Game complete",
+    "stats": {
+      "finalTotal": "Final total",
+      "allocation": "Where your money ended up",
+      "budgetChange": "Monthly budget change",
+      "eventImpact": "Total event-card impact",
+      "event": "Event {{number}}"
+    }
+  },
   "studentPhase": {
     "title": "STUDENT PHASE",
     "character_label": "CHARACTER",
@@ -197,6 +207,10 @@
   },
   "supervisor_page": {
     "title": "Dashboard",
+    "amount_monthly": "Per month",
+    "amount_after": "After phase",
+    "phase_1_short": "Phase 1",
+    "phase_2_short": "Phase 2",
     "create_room_button": "CREATE A ROOM",
     "room_code_label": "YOUR ROOM CODE",
     "in_progress": "GAME IN PROGRESS",

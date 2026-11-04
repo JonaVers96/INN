@@ -1,4 +1,14 @@
 {
+  "endScreen": {
+    "title": "Einde van het spel",
+    "stats": {
+      "finalTotal": "Eindtotaal",
+      "allocation": "Verdeling van je geld",
+      "budgetChange": "Verandering in maandbudget",
+      "eventImpact": "Totale impact van gebeurteniskaarten",
+      "event": "Gebeurtenis {{number}}"
+    }
+  },
   "studentPhase": {
     "title": "STUDENTENFASE",
     "character_label": "PERSONAGE",
@@ -198,6 +208,10 @@
   },
   "supervisor_page": {
     "title": "Dashboard",
+    "amount_monthly": "Per maand",
+    "amount_after": "Na fase",
+    "phase_1_short": "Fase 1",
+    "phase_2_short": "Fase 2",
     "create_room_button": "MAAK EEN KAMER AAN",
     "room_code_label": "JOUW KAMER CODE",
     "in_progress": "SPEL IS BEZIG",

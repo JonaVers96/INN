@@ -7,6 +7,7 @@ using LYL.Domain.Model.States;
 using LYL.Domain.Services.Interfaces;
 using LYL.Domain.Services.Mapping;
 using LYL.Persistence.Interfaces;
+using LYL.Api.Contracts.Game;
 
 namespace LYL.Domain.Services;
 
@@ -176,5 +177,11 @@ public class PhaseService : IPhaseService
         if (result.IsValid && player.DossierState is FirstWorkphaseState) player.DossierState.NextPhase(player);
         return result;
         
+    }
+
+    public async Task<PlayerAmountsDto> GetPlayerAmountsAsync(string roomCode, Guid playerId)
+    {
+        var (_, player) = await roomRepo.GetPlayerOrThrowAsync(roomCode, playerId);
+        return player.Dossier.AsAmounts();
     }
 }
