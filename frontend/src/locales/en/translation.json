@@ -226,7 +226,9 @@
     "settings": "Settings",
     "close_settings": "Close",
     "skip_checks": "Disable checks",
-    "skip_checks_info": "Players can enter any numbers without them being checked."
+    "skip_checks_info": "Players can enter any numbers without them being checked.",
+    "language": "Language",
+    "language_info": "Choose the language for the game."    
   },
   "phases": {
     "offline": "Offline",

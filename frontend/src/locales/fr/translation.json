@@ -226,7 +226,9 @@
     "settings": "Paramètres",
     "close_settings": "Fermer",
     "skip_checks": "Désactiver les contrôles",
-    "skip_checks_info": "Les joueurs peuvent saisir tous les chiffres sans qu’ils soient vérifiés."
+    "skip_checks_info": "Les joueurs peuvent saisir tous les chiffres sans qu’ils soient vérifiés.",
+    "language": "Langue",
+    "language_info": "Choisissez la langue pour le jeu."
   },
   "phases": {
     "offline": "Hors ligne",
