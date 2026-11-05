@@ -14,6 +14,7 @@ import SupervisorGuardedLayout from "./layouts/SupervisorGuardedLayout.tsx";
 import GamePage from "./pages/GamePage.tsx";
 import StudentPhasePage from "./pages/StudentPhasePage.tsx";
 import EventPage from "./pages/EventPage.tsx";
+import RequirePlayerSession from "./layouts/RequirePlayerSession.tsx";
 
 const browserRouter = createBrowserRouter([
   { path: "/", element: <App /> },
@@ -22,14 +23,19 @@ const browserRouter = createBrowserRouter([
     element: <SupervisorGuardedLayout />,
     children: [{ path: "/supervisor", element: <SupervisorPage /> }],
   },
-  { path: "/waitingroom/:roomCode", element: <WaitingRoomPage /> },
   {
-    element: <PlayerGameLayout />,
+    element: <RequirePlayerSession />,
     children: [
-      { path: "/character-discovery", element: <CharacterDiscoveryPage /> },
-      { path: "/student-phase", element: <StudentPhasePage /> },
-      { path: "/game", element: <GamePage /> },
-      { path: "/eventCard", element: <EventPage /> },
+      { path: "/waitingroom/:roomCode", element: <WaitingRoomPage /> },
+      {
+        element: <PlayerGameLayout />,
+        children: [
+          { path: "/character-discovery", element: <CharacterDiscoveryPage /> },
+          { path: "/student-phase", element: <StudentPhasePage /> },
+          { path: "/game", element: <GamePage /> },
+          { path: "/eventCard", element: <EventPage /> },
+        ],
+      },
     ],
   },
 ]);
