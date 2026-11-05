@@ -80,7 +80,7 @@ public class GameController(IPhaseService PhaseService, IEventCardService eventC
 
         var updatedPhase = await PhaseService.CompleteStudentPhaseAsync(roomId, playerGuid, dto);
 
-        await hubContext.Clients.Group(roomId).SendAsync("PlayerPhaseUpdated", new
+        await hubContext.Clients.Groups(roomId, GameGroups.Supervisor(roomId)).SendAsync("PlayerPhaseUpdated", new
         {
             PlayerId = playerId,
             NewPhase = updatedPhase
@@ -105,7 +105,7 @@ public class GameController(IPhaseService PhaseService, IEventCardService eventC
             return BadRequest(new { message = ex.Message });
         }
 
-        await hubContext.Clients.Group(roomId).SendAsync("PlayerPhaseUpdated", new
+        await hubContext.Clients.Groups(roomId, GameGroups.Supervisor(roomId)).SendAsync("PlayerPhaseUpdated", new
         {
             PlayerId = playerId,
             NewPhase = updatedPhase
