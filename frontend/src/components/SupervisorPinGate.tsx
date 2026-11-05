@@ -73,6 +73,13 @@ export default function SupervisorPinGate({ onSuccess }: Props) {
           </button>
         </form>
       </div>
+      
+
+        <img
+          src="/HOGENT_Logo_Pos_rgb.png"
+          alt="HOGENT"
+          className="absolute bottom-4 right-4 w-40 opacity-70"
+        />
     </div>
   );
 }
