@@ -17,28 +17,30 @@ public class GameHub(IRoomService roomService) : Hub
     }
 
     public async Task<JoinTableResponse> JoinTable(JoinTableRequest request)
+{
+    try
     {
-        try
-        {
-            var response = await roomService.JoinTableAsync(request);
-            await Groups.AddToGroupAsync(Context.ConnectionId, request.RoomCode);
-            await Clients.Group(request.RoomCode).SendAsync("PlayerJoined", response);
-            connections[Context.ConnectionId] = (response.PlayerId.ToString(), request.RoomCode);
-            return response;
-        }
-        catch (Exception e)
-        {
-            await Clients.Caller.SendAsync("JoinFailed", e.Message);
-            return null;
-        } //TODO properder maken
+        var response = await roomService.JoinTableAsync(request);
+        await Groups.AddToGroupAsync(Context.ConnectionId, request.RoomCode);
+        await Clients.Groups(request.RoomCode, GameGroups.Supervisor(request.RoomCode))
+            .SendAsync("PlayerJoined", response);
+        connections[Context.ConnectionId] = (response.PlayerId.ToString(), request.RoomCode);
+        return response;
     }
+    catch (Exception e)
+    {
+        await Clients.Caller.SendAsync("JoinFailed", e.Message);
+        return null;
+    } //TODO properder maken
+}
 
     public async Task<LeaveTableResponse> LeaveTable(LeaveTableRequest request)
     {
         try
         {
             var response = await roomService.LeaveTableAsync(request);
-            await Clients.Group(request.RoomCode).SendAsync("PlayerLeft", response);
+            await Clients.Groups(request.RoomCode, GameGroups.Supervisor(request.RoomCode))
+            .SendAsync("PlayerLeft", response);
             await Groups.RemoveFromGroupAsync(Context.ConnectionId, request.RoomCode);
             connections.TryRemove(Context.ConnectionId, out var value);
             return response;
@@ -54,7 +56,7 @@ public class GameHub(IRoomService roomService) : Hub
     {
         if (connections.TryGetValue(Context.ConnectionId, out var roomInfo))
         {
-            await Clients.Group(roomInfo.RoomCode)
+            await Clients.Groups(roomInfo.RoomCode, GameGroups.Supervisor(roomInfo.RoomCode))
                 .SendAsync("PlayerDisconnected", new { PlayerId = roomInfo.PlayerId });
             connections.TryRemove(Context.ConnectionId, out var value);
         }
@@ -67,6 +69,6 @@ public class GameHub(IRoomService roomService) : Hub
         await Groups.AddToGroupAsync(Context.ConnectionId, roomCode);
         connections[Context.ConnectionId] = (playerId, roomCode);
 
-        await Clients.Group(roomCode).SendAsync("PlayerReconnected", new { PlayerId = playerId });
+        await Clients.Groups(roomCode, GameGroups.Supervisor(roomCode)).SendAsync("PlayerReconnected", new { PlayerId = playerId });
     }
 }
