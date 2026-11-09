@@ -10,7 +10,7 @@ import { useState } from "react";
 import { useResizablePanel } from "../hooks/useResizablePanel";
 import { useCharacter } from "../hooks/useCharacter";
 import { useEventCards } from "../hooks/useEventCards";
-import { FaDice } from "react-icons/fa";
+import { FaDice, FaFlagCheckered } from "react-icons/fa";
 import StudentPhaseOverlay from "../components/gamePage/StudentPhaseOverlay";
 import LivingSituationOverlay from "../components/gamePage/LivingSituationOverlay";
 import EventCardsOverlay from "../components/gamePage/EventCardOverlay";
@@ -31,6 +31,12 @@ const GamePage = () => {
   const [isLivingSituationOpen, setIsLivingSituationOpen] = useState(false);
   const [completedValues, setCompletedValues] =
     useState<BudgetFormValues | null>(null);
+  const [isEndScreenOpen, setIsEndScreenOpen] = useState(false);
+
+  const handleGameComplete = (values: BudgetFormValues) => {
+    setCompletedValues(values);
+    setIsEndScreenOpen(true);
+  };
 
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
@@ -94,6 +100,15 @@ const GamePage = () => {
         </div>
 
         <div className="flex flex-col items-center gap-4 pb-2">
+          {completedValues && (
+            <button
+              onClick={() => setIsEndScreenOpen(true)}
+              title="Eindresultaat bekijken"
+              className="hover:scale-130 transition-transform opacity-40 hover:opacity-80"
+            >
+              <FaFlagCheckered size={22} style={{ color: "#056b67" }} />
+            </button>
+          )}
           {eventCards.eventCardsDone && (
             <button
               onClick={eventCards.openSummary}
@@ -209,7 +224,7 @@ const GamePage = () => {
         )}
         <InputSheet
           onPhase2Complete={eventCards.fetchAndStartEventCards}
-          onGameComplete={setCompletedValues}
+          onGameComplete={handleGameComplete}
         />
       </div>
 
@@ -228,7 +243,12 @@ const GamePage = () => {
       {eventCards.showEventCards && (
         <EventCardsOverlay eventCards={eventCards} />
       )}
-      {completedValues && <EndScreen values={completedValues} />}
+      {completedValues && isEndScreenOpen && (
+        <EndScreen
+          values={completedValues}
+          onClose={() => setIsEndScreenOpen(false)}
+        />
+      )}
     </div>
   );
 };

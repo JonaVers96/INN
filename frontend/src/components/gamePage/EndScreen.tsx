@@ -1,25 +1,24 @@
+import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import type { BudgetFormValues } from "../../types/inputsheet";
+import { formatCurrency as formatEuro } from "../../utils/formatters";
 
 type Props = {
   values: BudgetFormValues;
+  onClose: () => void;
 };
 
-const EndScreen = ({ values }: Props) => {
-  const { t: tCommon, i18n } = useTranslation();
+const EndScreen = ({ values, onClose }: Props) => {
+  const { t: tCommon } = useTranslation();
   const { t: tInput } = useTranslation("input_sheet");
-  const locale = i18n.resolvedLanguage ?? "en";
-  const currencyFormatter = new Intl.NumberFormat(locale, {
-    style: "currency",
-    currency: "EUR",
-    maximumFractionDigits: 2,
-  });
-  const signedCurrencyFormatter = new Intl.NumberFormat(locale, {
-    style: "currency",
-    currency: "EUR",
-    maximumFractionDigits: 2,
-    signDisplay: "always",
-  });
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [onClose]);
   const toNumber = (value: unknown): number | null => {
     if (typeof value === "number") {
       return Number.isFinite(value) ? value : null;
@@ -31,14 +30,11 @@ const EndScreen = ({ values }: Props) => {
   const formatCurrency = (value: unknown, showSign = false) => {
     const number = toNumber(value);
     if (number === null) return "—";
-    return (showSign ? signedCurrencyFormatter : currencyFormatter).format(number);
+    return formatEuro(number, { showSign });
   };
   const phase1Budget = toNumber(values.remaining_budget_phase1);
   const phase2Budget = toNumber(values.remaining_budget_phase2);
-  const budgetChange =
-    phase1Budget !== null && phase2Budget !== null
-      ? phase2Budget - phase1Budget
-      : null;
+
   const eventImpacts = [
     values.calc_p2_event1,
     values.calc_p2_event2,
@@ -49,11 +45,15 @@ const EndScreen = ({ values }: Props) => {
     : null;
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm">
+    <div
+      className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm"
+      onClick={onClose}
+    >
       <section
         role="dialog"
         aria-modal="true"
         aria-labelledby="end-screen-title"
+        onClick={(e) => e.stopPropagation()}
         className="flex h-1/2 w-1/2 min-h-80 min-w-80 max-w-4xl flex-col items-center overflow-y-auto rounded-3xl bg-slate-50 p-6 shadow-2xl"
       >
         <h1
@@ -92,14 +92,31 @@ const EndScreen = ({ values }: Props) => {
             </dl>
           </article>
 
-          <article className="rounded-2xl bg-white p-4 shadow-sm">
+                   <article className="rounded-2xl bg-white p-4 shadow-sm">
             <h2 className="text-sm font-bold uppercase tracking-wide text-slate-500">
-              {tCommon("endScreen.stats.budgetChange")}
+              {tCommon("endScreen.stats.monthlyTotal")}
             </h2>
-            <p className="mt-2 text-xl font-black text-slate-800">
-              {formatCurrency(budgetChange, true)}
-            </p>
+            <div className="mt-2 grid grid-cols-2 gap-4">
+              <div>
+                <h3 className="text-xs font-bold uppercase tracking-wide text-slate-400">
+                  {tCommon("endScreen.stats.Phase1")}
+                </h3>
+                <p className="mt-1 text-xl font-black text-slate-800">
+                  {formatCurrency(phase1Budget)}
+                </p>
+              </div>
+              <div>
+                <h3 className="text-xs font-bold uppercase tracking-wide text-slate-400">
+                  {tCommon("endScreen.stats.Phase2")}
+                </h3>
+                <p className="mt-1 text-xl font-black text-slate-800">
+                  {formatCurrency(phase2Budget)}
+                </p>
+              </div>
+            </div>
           </article>
+
+
 
           <article className="rounded-2xl bg-white p-4 shadow-sm">
             <h2 className="text-sm font-bold uppercase tracking-wide text-slate-500">

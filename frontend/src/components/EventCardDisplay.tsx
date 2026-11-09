@@ -2,6 +2,7 @@ import { useState } from "react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import type { EventCard, EventCardOption } from "../types/EventCardType";
+import { formatCurrency as formatEuro } from "../utils/formatters";
 
 interface EventCardProps {
   card: EventCard;
@@ -23,13 +24,7 @@ const EventCardDisplay: React.FC<EventCardProps> = ({
   const [rolledOption, setRolledOption] = useState<string | null>(null);
   const [isRolling, setIsRolling] = useState(false);
 
-  const formatCurrency = (val: number) =>
-    new Intl.NumberFormat("nl-BE", {
-      style: "currency",
-      currency: "EUR",
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(Math.abs(val));
+  const formatCurrency = (val: number) => formatEuro(Math.abs(val));
 
   const renderImpact = (option: EventCardOption) => {
     if (option.multiplier === "family_members" && option.amount)

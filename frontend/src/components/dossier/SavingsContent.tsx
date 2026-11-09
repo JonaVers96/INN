@@ -3,9 +3,9 @@ import { useTranslation } from "react-i18next";
 import axios from "axios";
 import dossierData from "../../assets/dossierData.json";
 import type { InvestmentTableResponse } from "../../types/InvestmentModel";
+import { formatCurrency } from "../../utils/formatters";
 
-const fmt = (value: number) =>
-  `€ ${value.toLocaleString("nl-BE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+const fmt = (value: number) => formatCurrency(value);
 
 const SavingsContent = () => {
   const { t } = useTranslation("dossier_info");
@@ -148,7 +148,7 @@ const SavingsContent = () => {
                     <td
                       className="p-2 font-bold text-right border-r-2 border-b border-white whitespace-nowrap"
                       style={{ backgroundColor: "#1ea798", color: "white" }}>
-                      € {row.principal.toLocaleString("nl-BE")}
+                      {fmt(row.principal)}
                     </td>
                     <td
                       className="p-2 text-right border-r-2 border-b border-white whitespace-nowrap"

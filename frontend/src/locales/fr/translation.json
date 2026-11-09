@@ -4,7 +4,9 @@
     "stats": {
       "finalTotal": "Total final",
       "allocation": "Répartition de votre argent",
-      "budgetChange": "Évolution du budget mensuel",
+      "monthlyTotal": "Total mensuel",
+      "Phase1": "Phase 1",
+      "Phase2": "Phase 2",
       "eventImpact": "Impact total des cartes événement",
       "event": "Événement {{number}}"
     }

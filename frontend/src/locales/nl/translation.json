@@ -4,7 +4,9 @@
     "stats": {
       "finalTotal": "Eindtotaal",
       "allocation": "Verdeling van je geld",
-      "budgetChange": "Verandering in maandbudget",
+      "monthlyTotal": "Maand totaal",
+      "Phase1": "Fase 1",
+      "Phase2": "Fase 2",
       "eventImpact": "Totale impact van gebeurteniskaarten",
       "event": "Gebeurtenis {{number}}"
     }
