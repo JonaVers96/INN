@@ -4,7 +4,9 @@
     "stats": {
       "finalTotal": "Final total",
       "allocation": "Where your money ended up",
-      "budgetChange": "Monthly budget change",
+      "monthlyTotal": "budget balance per month",
+      "Phase1": "Phase 1",
+      "Phase2": "Phase 2",
       "eventImpact": "Total event-card impact",
       "event": "Event {{number}}"
     }
@@ -268,16 +270,19 @@
     "accept": "Accept & Continue"
   },
   "partner_wheel": {
-    "possible_partners": "Possible partners",
+    "possible_partners": "Possible partner",
     "discover_partner": "Time to find out whether or not you'll have a partner!",
     "congrats": "This is your partner's financial situation.",
     "no_partner": "You don't have a partner.",
     "firstphase": "You don't have a partner and/or children yet."
   },
   "children_wheel": {
-    "possible_children": "Possible families",
+    "possible_children": "Possible children",
     "discover_children": "Time to find out how many children you're going to have!",
-    "congrats": "Congratulations, this is your family!"
+    "congrats": "Congratulations, this is your family!",
+    "no_children": "No children (for now!)",
+    "you_got_children_one": "You get {{count}} child!",
+    "you_got_children_other": "You get {{count}} children!"
   },
   "navigation_blocked": {
     "title": "You can't go back!",

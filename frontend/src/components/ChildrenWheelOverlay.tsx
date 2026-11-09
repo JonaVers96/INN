@@ -60,7 +60,7 @@ const ChildrenWheelOverlay = ({
       {!showResult ? (
         <div className="bg-white rounded-[2rem] shadow-2xl p-8 flex flex-col items-center max-w-lg w-full text-center border-4 border-teal-600 relative overflow-hidden">
           <h2 className="text-3xl font-black text-teal-800 mb-2">
-            {t("children_wheel.possible_children", "Jouw Toekomst")}
+            {t("children_wheel.possible_children")}
           </h2>
           <p className="text-slate-600 mb-6 font-medium">
             {t("children_wheel.discover_children")}
@@ -122,10 +122,7 @@ const ChildrenWheelOverlay = ({
                     0
                   </span>
                   <p className="text-xl font-bold text-slate-600">
-                    {t(
-                      "children_wheel.no_children",
-                      "Geen kinderen (voorlopig!)",
-                    )}
+                    {t("children_wheel.no_children")}
                   </p>
                 </div>
               ) : (
@@ -143,10 +140,7 @@ const ChildrenWheelOverlay = ({
                       ))}
                   </div>
                   <p className="text-xl font-bold text-teal-800">
-                    {t(
-                      "children_wheel.you_got_children",
-                      `Je krijgt ${winningChildren} ${winningChildren === 1 ? "kind" : "kinderen"}!`,
-                    )}
+                    {t("children_wheel.you_got_children", { count: winningChildren })}
                   </p>
                 </div>
               )}

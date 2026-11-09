@@ -14,7 +14,7 @@ public class InvestmentReturnsService(IMemoryAccessService memoryAccessService) 
 
     public decimal CalculateInflationImpact(decimal principal, decimal inflationRate, int years)
     {
-        return -principal / (decimal)Math.Pow((double)(1 + inflationRate), years);
+        return principal / (decimal)Math.Pow((double)(1 + inflationRate), years) - principal;    
     }
 
     public InvestmentTableResponse GetTableFor(InvestmentProfile profile)

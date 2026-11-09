@@ -3,6 +3,7 @@ import { Wheel } from "react-custom-roulette-r19";
 import { useTranslation } from "react-i18next";
 import type { Job } from "../types/CharacterModel";
 import Confetti from "react-confetti";
+import { formatCurrency } from "../utils/formatters";
 
 interface JobWheelOverlayProps {
   isOpen: boolean;
@@ -35,9 +36,6 @@ const JobWheelOverlay = ({
       setMustSpin(true);
     }
   };
-
-  const formatCurrency = (amount: number) =>
-    `€ ${amount.toLocaleString("nl-BE")}`;
 
   const winningJob = jobs[predeterminedJobIndex];
 

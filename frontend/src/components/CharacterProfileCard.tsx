@@ -2,6 +2,7 @@ import { useTranslation } from "react-i18next";
 import "../styles/CharacterProfileCard.css";
 import { useCharacter } from "../hooks/useCharacter";
 import type { Job } from "../types/CharacterModel";
+import { formatCurrency as formatEuro } from "../utils/formatters";
 
 
 const CharacterProfileCard = ({
@@ -20,7 +21,7 @@ const CharacterProfileCard = ({
 
   const formatCurrency = (amount: number) => {
     if (!amount) return "/";
-    return `€ ${amount.toLocaleString("nl-BE")}`;
+    return formatEuro(amount);
   };
 
   return (

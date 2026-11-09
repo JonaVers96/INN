@@ -3,6 +3,7 @@ import { Wheel } from "react-custom-roulette-r19";
 import { useTranslation } from "react-i18next";
 import type { Partner } from "../types/CharacterModel";
 import Confetti from "react-confetti";
+import { formatCurrency } from "../utils/formatters";
 
 interface PartnerWheelOverlayProps {
   isOpen: boolean;
@@ -24,9 +25,6 @@ const PartnerWheelOverlay = ({
   const [showResult, setShowResult] = useState(false);
 
   if (!isOpen) return null;
-
-  const formatCurrency = (amount: number) =>
-    `€ ${amount.toLocaleString("nl-BE")}`;
 
   //we maken van currencyss een image zodat we ze netjes onder elkaar kunnen tonen in de wheel slices, 
   // aangezien die geen multiline text ondersteunen. 

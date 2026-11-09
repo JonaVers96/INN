@@ -5,6 +5,7 @@ import { useSignalR } from "../hooks/useSignalR";
 import { useNavigationBlocker } from "../hooks/useNavigationBlocker";
 import NavigationBlockedModal from "../components/NavigationBlockedModal";
 import { usePlayerLanguage } from "../hooks/usePlayerLanguage";
+import { phaseToRoute } from "../utils/phaseRoutes";
 
 const WaitingRoomPage = () => {
   const { t } = useTranslation();
@@ -26,7 +27,7 @@ const WaitingRoomPage = () => {
         "De docent heeft het spel gestart! Even 0.5s wachten op de database...",
       );
 
-      const targetRoute = startFase ? `/${startFase}` : "/character-discovery";
+      const targetRoute = phaseToRoute(startFase, roomCode ?? "");
 
       setTimeout(() => {
         navigate(targetRoute, { replace: true });
@@ -45,7 +46,7 @@ const WaitingRoomPage = () => {
       connection.off("GameStarted");
       connection.off("RoomClosed");
     };
-  }, [connection, navigate]);
+  }, [connection, navigate, roomCode]);
   // ----------------------------------------------------------
 
   const handleLeave = async () => {

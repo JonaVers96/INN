@@ -1,9 +1,10 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
 import type { Player } from "../types/Models";
+import { formatCurrency } from "../utils/formatters";
 
 const PlayerListItem: React.FC<{ player: Player }> = ({ player }) => {
-  const { t,i18n } = useTranslation();
+  const { t } = useTranslation();
 
   // Helper functie om de fase visueel aantrekkelijk te maken
   const getPhaseDisplay = (phase?: string) => {
@@ -49,13 +50,7 @@ const PlayerListItem: React.FC<{ player: Player }> = ({ player }) => {
   };
 
   const formatAmount = (value?: number | null) =>
-  value == null
-    ? "–"
-    : new Intl.NumberFormat(i18n.language, {
-        style: "currency",
-        currency: "EUR",
-        maximumFractionDigits: 0,
-      }).format(value);
+    value == null ? "–" : formatCurrency(value);
 
   const phaseInfo = getPhaseDisplay(player.currentPhase);
 

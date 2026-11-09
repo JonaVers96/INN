@@ -1,5 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { useCharacter } from "../hooks/useCharacter";
+import { formatCurrency } from "../utils/formatters";
 
 const LivingSituationCard = () => {
   const { t } = useTranslation();
@@ -17,9 +18,6 @@ const LivingSituationCard = () => {
         {t("partner_wheel.firstphase")}
       </div>
     );
-
-  const formatCurrency = (amount: number) =>
-    `€ ${amount.toLocaleString("nl-BE")}`;
 
   return (
     <div className="w-full overflow-hidden rounded-lg shadow-sm border border-slate-100 mb-8 overflow-x-auto">
