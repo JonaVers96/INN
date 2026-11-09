@@ -4,7 +4,7 @@ import "./index.css";
 import App from "./App.tsx";
 import { SignalRProvider } from "./contexts/SignalRProvider";
 import "./i18n";
-import { createBrowserRouter, RouterProvider } from "react-router-dom";
+import { createBrowserRouter, Navigate, RouterProvider } from "react-router-dom";
 import SupervisorPage from "./pages/SupervisorPage.tsx";
 import HomePlayerPage from "./pages/HomePlayerPage.tsx";
 import WaitingRoomPage from "./pages/WaitingRoomPage.tsx";
@@ -38,6 +38,7 @@ const browserRouter = createBrowserRouter([
       },
     ],
   },
+  { path: "*", element: <Navigate to="/home" replace /> },
 ]);
 
 createRoot(document.getElementById("root")!).render(

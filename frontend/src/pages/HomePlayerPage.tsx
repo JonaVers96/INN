@@ -6,6 +6,8 @@ import type { JoinTableRequest } from "../types/Requests";
 import type { JoinTableResponse } from "../types/Reponses";
 import InputField from "../components/InputField";
 import { getSession, type Session } from "../api/dossierApi";
+import { phaseToRoute } from "../utils/phaseRoutes";
+
 
 
 const HomePlayerPage = () => {
@@ -60,7 +62,9 @@ const HomePlayerPage = () => {
       localStorage.setItem("tableNumber", requestData.tableNumber.toString());
 
       if (response.isGameAlreadyStarted) {
-        navigate(`/${response.currentPhase}`, { replace: true });
+        navigate(phaseToRoute(response.currentPhase, requestData.roomCode), {
+          replace: true,
+        });
       } else {
         navigate(`/waitingroom/${requestData.roomCode}`, { replace: true });
       }
