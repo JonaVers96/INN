@@ -50,14 +50,18 @@ public class TestInvestmentReturnsService
         Assert.Equal(expected, result);
     }
 
-    [Fact]
-    public void GivenPrincipalAndInflationRate_WhenCalculatingInflationImpact_ThenMatchesExcel()
+    [Theory]
+    [InlineData(1000, -327.03)]    // Excel: inflatieverlies voor 1 000
+    [InlineData(10000, -3270.29)]  // Excel: inflatieverlies voor 10 000
+    [InlineData(100000, -32702.87)] // Excel: inflatieverlies voor 100 000
+    public void GivenPrincipalAndInflationRate_WhenCalculatingInflationImpact_ThenMatchesExcel(
+        decimal principal, decimal expected)
     {
-        // Excel B10: -1000 * 1/(1+0.02)^20 = -6729.71 (for 10000 principal)
-        var result = Math.Round(_service.CalculateInflationImpact(10000, 0.02m, 20), 2, MidpointRounding.AwayFromZero);
+        var result = Math.Round(_service.CalculateInflationImpact(principal, 0.02m, 20), 2, MidpointRounding.AwayFromZero);
 
-        Assert.Equal(-6729.71m, result);
+        Assert.Equal(expected, result);
     }
+
 
     // --- GetTableFor ---
 
