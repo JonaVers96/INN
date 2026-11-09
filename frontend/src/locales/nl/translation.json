@@ -269,16 +269,19 @@
     "accept": "Accepteer & Ga Verder"
   },
   "partner_wheel": {
-    "possible_partners": "Mogelijke partners",
+    "possible_partners": "Mogelijke partner",
     "discover_partner": "Tijd om te ontdekken welke partner jij al dan niet gaat hebben!",
     "congrats": "Dit is de financiële situatie van je partner.",
     "no_partner": "Je hebt geen partner.",
     "firstphase": "Je hebt nog geen partner en/of kinderen."
   },
   "children_wheel": {
-    "possible_children": "Mogelijke gezinsituaties",
+    "possible_children": "Mogelijke kinderen",
     "discover_children": "Tijd om te ontdekken hoeveel kinderen jij gaat hebben!",
-    "congrats": "Gefeliciteerd, dit is je gezin!"
+    "congrats": "Gefeliciteerd, dit is je gezin!",
+    "no_children": "Geen kinderen (voorlopig!)",
+    "you_got_children_one": "Je krijgt {{count}} kind!",
+    "you_got_children_other": "Je krijgt {{count}} kinderen!"
   },
   "navigation_blocked": {
     "title": "Je kan niet terug!",

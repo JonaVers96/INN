@@ -268,16 +268,19 @@
     "accept": "Accepter & Continuer"
   },
   "partner_wheel": {
-    "possible_partners": "Partenaires potentiels",
+    "possible_partners": "Partenaire potentiel",
     "discover_partner": "Il est temps de découvrir si vous allez avoir un partenaire ou non!",
     "congrats": "Voici la situation financière de votre partenaire.",
     "no_partner": "Vous n'avez pas de partenaire.",
     "firstphase": "Vous n'avez pas encore de partenaire et/ou des enfants."
   },
   "children_wheel": {
-    "possible_children": "Familles potentiels",
+    "possible_children": "Enfants potentiels",
     "discover_children": "Il est temps de découvrir combien d'enfants vous allez avoir!",
-    "congrats": "Félicitations, voici votre famille!"
+    "congrats": "Félicitations, voici votre famille!",
+    "no_children": "Pas d'enfants (pour l'instant !)",
+    "you_got_children_one": "Vous aurez {{count}} enfant !",
+    "you_got_children_other": "Vous aurez {{count}} enfants !"
   },
   "navigation_blocked": {
     "title": "Vous ne pouvez pas reculer !",
